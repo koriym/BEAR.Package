@@ -21,17 +21,23 @@ class LazyModule implements LazyModuleInterface
     /** @var string */
     private $scriptDir;
 
-    public function __construct(AbstractAppMeta $appMeta, string $context, string $scriptDir)
+    /** @var bool */
+    private $strict;
+
+    public function __construct(AbstractAppMeta $appMeta, string $context, string $scriptDir, bool $strict = false)
     {
         $this->appMeta = $appMeta;
         $this->context = $context;
         $this->scriptDir = $scriptDir;
+        $this->strict = $strict;
     }
 
     public function __invoke(): AbstractModule
     {
         $module = new ScriptinjectorModule($this->scriptDir, (new Module())($this->appMeta, $this->context));
-        $module->install(new ResourceObjectModule($this->appMeta->getResourceListGenerator()));
+        if ($this->strict) {
+            $module->install(new ResourceObjectModule($this->appMeta->getResourceListGenerator()));
+        }
 
         return $module;
     }

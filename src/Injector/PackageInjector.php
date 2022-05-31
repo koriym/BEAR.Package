@@ -42,9 +42,9 @@ final class PackageInjector
     {
     }
 
-    public static function getInstance(AbstractAppMeta $meta, string $context, ?CacheInterface $cache): InjectorInterface
+    public static function getInstance(AbstractAppMeta $meta, string $context, ?CacheInterface $cache, bool $strict = false): InjectorInterface
     {
-        $injectorId = str_replace('\\', '_', $meta->name) . $context;
+        $injectorId = str_replace('\\', '_', $meta->name) . $context . (string) $strict;
         if (isset(self::$instances[$injectorId])) {
             return self::$instances[$injectorId];
         }
@@ -52,9 +52,9 @@ final class PackageInjector
         assert($cache instanceof AdapterInterface);
         /** @psalm-suppress all */
         [$injector, $fileUpdate] = $cache->getItem($injectorId)->get(); // @phpstan-ignore-line
-        $isCacheableInjector = $injector instanceof ScriptInjector || ($injector instanceof InjectorInterface && $fileUpdate instanceof FileUpdate && $fileUpdate->isNotUpdated($meta));
+        $isCacheableInjector = $injector instanceof ScriptInjector || $injector instanceof CompileInjector || ($injector instanceof InjectorInterface && $fileUpdate instanceof FileUpdate && $fileUpdate->isNotUpdated($meta));
         if (! $isCacheableInjector) {
-            $injector = self::factory($meta, $context);
+            $injector = self::factory($meta, $context, null, $strict);
             $cache->save($cache->getItem($injectorId)->set([$injector, new FileUpdate($meta)]));
         }
 
@@ -63,7 +63,7 @@ final class PackageInjector
         return $injector;
     }
 
-    public static function factory(AbstractAppMeta $meta, string $context, ?AbstractModule $overideModule = null): InjectorInterface
+    public static function factory(AbstractAppMeta $meta, string $context, ?AbstractModule $overideModule = null, bool $strict = false): InjectorInterface
     {
         $scriptDir = $meta->tmpDir . '/di';
         ! is_dir($scriptDir) && ! @mkdir($scriptDir) && ! is_dir($scriptDir);
@@ -81,7 +81,8 @@ final class PackageInjector
         $isProd = $injector->getInstance('', Compile::class);
         assert(is_bool($isProd));
         if ($isProd) {
-            $injector = new CompileInjector($scriptDir, new LazyModule($meta, $context, $scriptDir));
+            $injector = $strict ? new CompileInjector($scriptDir, new LazyModule($meta, $context, $scriptDir, true)) :
+                new ScriptInjector($scriptDir, new LazyModule($meta, $context, $scriptDir));
         }
 
         $injector->getInstance(AppInterface::class);

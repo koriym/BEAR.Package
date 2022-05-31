@@ -27,13 +27,16 @@ final class Injector
     {
     }
 
-    public static function getInstance(string $appName, string $context, string $appDir, ?CacheInterface $cache = null): InjectorInterface
+    /**
+     * @param bool $strict Dependency bindings are strictly checked at compile time if true
+     */
+    public static function getInstance(string $appName, string $context, string $appDir, ?CacheInterface $cache = null, bool $strict = false): InjectorInterface
     {
         $meta = new Meta($appName, $context, $appDir);
         $cacheNamespace = str_replace('/', '_', $appDir) . $context;
         $cache ??= new ChainAdapter([new ApcuAdapter($cacheNamespace), new FilesystemAdapter('', 0, $meta->tmpDir . '/injector')]);
 
-        return PackageInjector::getInstance($meta, $context, $cache);
+        return PackageInjector::getInstance($meta, $context, $cache, $strict);
     }
 
     public static function getOverrideInstance(string $appName, string $context, string $appDir, AbstractModule $overrideModule): InjectorInterface
