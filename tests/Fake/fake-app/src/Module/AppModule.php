@@ -25,7 +25,6 @@ class AppModule extends AbstractModule
     {
         self::$modules[] = get_class($this);
         $this->bind(FakeDepInterface::class)->to(FakeDep::class);
-        $this->install(new PackageModule());
         $this->install(new ContextModule());
         $this->bindInterceptor(
             $this->matcher->subclassesOf(FakeDep::class),
@@ -34,5 +33,6 @@ class AppModule extends AbstractModule
         );
         $this->bind(FakeFoo::class);
         $this->bind(Auth::class)->toProvider(AuthProvider::class);
+        $this->install(new PackageModule());
     }
 }
