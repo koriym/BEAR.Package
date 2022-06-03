@@ -7,7 +7,6 @@ namespace BEAR\Package;
 use BEAR\Sunday\Extension\Application\AppInterface;
 use FakeVendor\HelloWorld\Module\App;
 use PHPUnit\Framework\TestCase;
-use Ray\Compiler\CompileInjector;
 use Ray\Di\AbstractModule;
 use Ray\Di\Injector as RayInjector;
 use Ray\Di\InjectorInterface;
@@ -119,14 +118,6 @@ class InjectorTest extends TestCase
         $injector = $this->getInjector($fakeApp);
         $app = $injector->getInstance(AppInterface::class);
         $this->assertSame($fakeApp, $app);
-    }
-
-    public function testStrict(): void
-    {
-        $appDir = __DIR__ . '/Fake/fake-app';
-        $context = 'prod-app';
-        $injector = Injector::getInstance('FakeVendor\HelloWorld', $context, $appDir, null, true);
-        $this->assertInstanceOf(CompileInjector::class, $injector);
     }
 
     private function getInjector(AppInterface $fakeApp): InjectorInterface

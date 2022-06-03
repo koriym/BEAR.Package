@@ -16,9 +16,11 @@ class ResourceObjectModule extends AbstractModule
     /** @var Generator<array{0: class-string, 1: string}> */
     private $resourceObjects;
 
+    /**
+     * @param Generator<array{0: class-string, 1: string}> $resourceObjects
+     */
     public function __construct(Generator $resourceObjects)
     {
-        /** @var Generator<array{0: class-string, 1: string}> $resourceObjects */
         $this->resourceObjects = $resourceObjects;
         parent::__construct();
     }
