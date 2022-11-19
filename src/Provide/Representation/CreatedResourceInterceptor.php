@@ -12,11 +12,8 @@ use function assert;
 
 class CreatedResourceInterceptor implements MethodInterceptor
 {
-    private CreatedResourceRenderer $renderer;
-
-    public function __construct(CreatedResourceRenderer $renderer)
+    public function __construct(private CreatedResourceRenderer $renderer)
     {
-        $this->renderer = $renderer;
     }
 
     /**

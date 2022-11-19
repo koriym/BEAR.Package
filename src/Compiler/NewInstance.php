@@ -9,7 +9,6 @@ use Ray\Di\InjectorInterface;
 use Throwable;
 
 use function count;
-use function get_class;
 use function in_array;
 use function printf;
 use function sprintf;
@@ -23,16 +22,12 @@ final class NewInstance
 
     /** @var array<string, string> */
     private array $failed = [];
-    private InjectorInterface $injector;
 
-    public function __construct(InjectorInterface $injector)
+    public function __construct(private InjectorInterface $injector)
     {
-        $this->injector = $injector;
     }
 
-    /**
-     * @param ''|class-string $interface
-     */
+    /** @param ''|class-string $interface */
     public function __invoke(string $interface, string $name = ''): void
     {
         $dependencyIndex = $interface . '-' . $name;
@@ -55,7 +50,7 @@ final class NewInstance
             $this->progress('F');
             // @codeCoverageIgnoreStart
         } catch (Throwable $e) {
-            $this->failed[$dependencyIndex] = sprintf('%s: %s', get_class($e), $e->getMessage());
+            $this->failed[$dependencyIndex] = sprintf('%s: %s', $e::class, $e->getMessage());
             $this->progress('F');
             // @codeCoverageIgnoreEnd
         }
@@ -63,17 +58,17 @@ final class NewInstance
 
     private function progress(string $char): void
     {
-        /**
-         * @var int
-         */
+        /** @var int $cnt */
         static $cnt = 0;
 
         echo $char;
         $cnt++;
-        if ($cnt === 60) {
-            $cnt = 0;
-            echo PHP_EOL;
+        if ($cnt !== 60) {
+            return;
         }
+
+        $cnt = 0;
+        echo PHP_EOL;
     }
 
     public function getCompiled(): int
@@ -81,9 +76,7 @@ final class NewInstance
         return count($this->compiled);
     }
 
-    /**
-     * @return array<string, string>
-     */
+    /** @return array<string, string> */
     public function getFailed(): array
     {
         return $this->failed;

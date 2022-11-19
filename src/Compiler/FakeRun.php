@@ -24,15 +24,8 @@ use function property_exists;
 
 class FakeRun
 {
-    private InjectorInterface $injector;
-    private string $context;
-    private AbstractAppMeta $appMeta;
-
-    public function __construct(InjectorInterface $injector, string $context, AbstractAppMeta $appMeta)
+    public function __construct(private InjectorInterface $injector, private string $context, private AbstractAppMeta $appMeta)
     {
-        $this->injector = $injector;
-        $this->context = $context;
-        $this->appMeta = $appMeta;
     }
 
     /**

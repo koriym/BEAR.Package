@@ -16,15 +16,9 @@ class RouterCollection implements RouterInterface
 {
     private const ROUTE_NOT_FOUND = 'page://self/__route_not_found';
 
-    /** @var RouterInterface[] */
-    private array $routers;
-
-    /**
-     * @param RouterInterface[] $routers
-     */
-    public function __construct(array $routers)
+    /** @param RouterInterface[] $routers */
+    public function __construct(private array $routers)
     {
-        $this->routers = $routers;
     }
 
     /**
