@@ -21,7 +21,7 @@ class AppModule extends AbstractModule
     /**
      * {@inheritdoc}
      */
-    protected function configure()
+    protected function configure(): void
     {
         self::$modules[] = get_class($this);
         $this->bind(FakeDepInterface::class)->to(FakeDep::class);
@@ -34,5 +34,6 @@ class AppModule extends AbstractModule
         );
         $this->bind(FakeFoo::class);
         $this->bind(Auth::class)->toProvider(AuthProvider::class);
+        $this->bind(FakeDep::class);
     }
 }
