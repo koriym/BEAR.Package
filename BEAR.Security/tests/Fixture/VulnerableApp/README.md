@@ -20,6 +20,12 @@ This is an intentionally vulnerable BEAR.Sunday application for testing BEAR.Sec
 | Auth.php | Insecure Deserialization | A08 | InsecureDeserializationDetector |
 | Auth.php | Session Fixation | A07 | SessionSecurityDetector |
 | config/prod.php | Hardcoded Credentials | A02 | CryptographicFailuresDetector |
+| Misc.php | Open Redirect | A01 | Pattern + Context |
+| Misc.php | Log Injection | - | AI-Only |
+| Misc.php | XXE | A05 | XxeDetector |
+| Misc.php | ReDoS | - | AI-Only |
+| Misc.php | Header Injection | A03 | HeaderInjectionDetector |
+| Misc.php | Weak Random | A02 | CryptographicFailuresDetector |
 
 ### AI-Only Detectable (Requires Context Understanding)
 
@@ -29,6 +35,9 @@ This is an intentionally vulnerable BEAR.Sunday application for testing BEAR.Sec
 | Admin.php | Mass Assignment | Requires understanding business logic (role field) |
 | Admin.php | Race Condition | Requires understanding concurrent execution |
 | Auth.php | Timing Attack | Requires understanding cryptographic timing |
+| Misc.php | Log Injection | Requires understanding log context |
+| Misc.php | ReDoS | Requires understanding regex complexity |
+| Misc.php | Open Redirect | Requires understanding URL validation |
 
 ## Expected Scan Results
 

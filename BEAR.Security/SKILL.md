@@ -150,7 +150,55 @@ BEAR.Sunday framework provides security by design:
 
 **Conclusion**: For BEAR.Sunday, BEAR.Security + Psalm Taint is sufficient.
 
-## AI-Powered Analysis (Future)
+## AI-Powered Analysis
+
+### Detection Patterns for AI
+
+#### SAST Patterns (Pattern-Based)
+```
+SQL Injection:
+- /\$_(GET|POST|REQUEST)\s*\[.*\].*\.(query|exec)/
+- /".*\.\s*\$_(GET|POST|REQUEST)/
+- /->query\s*\(\s*["'].*\$(?!pdo)/
+
+XSS:
+- /echo\s+\$_(GET|POST|REQUEST)/
+- /['"].*\.\s*\$_(GET|POST)/  (in HTML context)
+
+Command Injection:
+- /(shell_exec|exec|system|passthru)\s*\(.*\$_(GET|POST)/
+- /`.*\$_(GET|POST)/
+
+Hardcoded Secrets:
+- /(password|secret|api_key)\s*=\s*['"][^'"]{8,}/i
+- /sk_live_[a-zA-Z0-9]+/
+- /AKIA[A-Z0-9]{16}/
+```
+
+#### AI-Only Patterns (Context Required)
+
+| Vulnerability | Detection Approach |
+|---------------|-------------------|
+| **IDOR** | Check if authorization is missing before data access: `prepare()` without `session->getUserId()` comparison |
+| **Mass Assignment** | Dynamic field updates from user input: `foreach ($data as $key => $value)` building UPDATE without whitelist |
+| **Race Condition** | Check-then-act without transaction: `SELECT balance` → `if ($balance >= $amount)` → `UPDATE` |
+| **Timing Attack** | Direct comparison of secrets: `$input === $secret` instead of `hash_equals()` |
+| **Open Redirect** | `header('Location: ' . $userInput)` without URL validation |
+| **Log Injection** | `error_log()` with unsanitized user input |
+| **XXE** | `simplexml_load_string()` or `DOMDocument` with external input |
+| **ReDoS** | Regex with nested quantifiers: `(a+)+`, `(a|a)+`, `(a*)*` |
+
+#### False Positive Recognition
+
+| Pattern | Safe When |
+|---------|-----------|
+| `$userInput` in SQL | Used with prepared statement `execute([$userInput])` |
+| `exec()` | Is `$pdo->exec()` not shell exec |
+| `shell_exec()` | Input validated with whitelist + `escapeshellarg()` |
+| `serialize()` | On internal data, not user input |
+| `file_get_contents()` | Path uses `basename()` + fixed base path |
+| `md5()` | For cache keys, not passwords |
+| Placeholder strings | `YOUR_API_KEY_HERE`, `REPLACE_WITH_*` |
 
 ### What AI Can Do That Traditional Tools Cannot
 
