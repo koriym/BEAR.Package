@@ -49,7 +49,8 @@
             "BEAR\\Package\\": [
                 "src/",
                 "src-deprecated"
-            ]
+            ],
+            "BEAR\\SecurityScanner\\": "src-security-scanner/"
         },
         "files": [
             "src-files/apcu.php"
@@ -75,7 +76,8 @@
     },
     "bin": [
         "bin/bear.compile",
-        "bin/bear.compile.php"
+        "bin/bear.compile.php",
+        "bin/bear.security-scan"
     ],
     "scripts": {
         "test": ["./vendor/bin/phpunit -c ./phpunit.xml.dist"],
@@ -89,11 +91,14 @@
         "metrics": ["./vendor/bin/phpmetrics --report-html=build/metrics --exclude=Exception --junit=build/junit.xml src"],
         "phpmd": ["./vendor/bin/phpmd --exclude src/Annotation src text ./phpmd.xml"],
         "build": ["@cs", "@sa", "@pcov", "@metrics"],
-        "compile": "./bin/bear.compile FakeVendor\\\\HelloWorld prod-app ./tests/Fake/fake-app"
+        "compile": "./bin/bear.compile FakeVendor\\\\HelloWorld prod-app ./tests/Fake/fake-app",
+        "security-scan": ["./bin/bear.security-scan -e '/vendor/' -e '/tests/' ./src"],
+        "security-audit": ["@composer audit", "@security-scan"]
     },
     "config": {
         "allow-plugins": {
-            "bamarni/composer-bin-plugin": true
+            "bamarni/composer-bin-plugin": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
         }
     }
 }
