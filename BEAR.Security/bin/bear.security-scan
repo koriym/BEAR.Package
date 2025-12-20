@@ -1,0 +1,257 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * BEAR Security Scanner - CLI Tool
+ *
+ * Usage: bear.security-scan [options] <directory>
+ *
+ * Options:
+ *   -f, --format <format>   Output format: console (default), json
+ *   -e, --exclude <pattern> Exclude pattern (can be used multiple times)
+ *   -o, --output <file>     Output file (default: stdout)
+ *   -q, --quiet             Suppress banner and summary
+ *   --no-colors             Disable colored output
+ *   -h, --help              Show help message
+ *
+ * Examples:
+ *   bear.security-scan ./src
+ *   bear.security-scan -f json ./src > report.json
+ *   bear.security-scan -e '/vendor/' -e '/tests/' ./
+ */
+
+namespace BEAR\Security;
+
+use BEAR\Security\Output\ConsoleOutput;
+use BEAR\Security\Output\JsonOutput;
+use BEAR\Security\Output\SarifOutput;
+use BEAR\Security\Report\SecurityChecklistReport;
+
+use function array_shift;
+use function count;
+use function dirname;
+use function file_exists;
+use function file_put_contents;
+use function fwrite;
+use function in_array;
+use function is_dir;
+use function realpath;
+use function str_starts_with;
+
+use const PHP_EOL;
+use const STDERR;
+use const STDOUT;
+
+// Find autoloader
+$autoloadPaths = [
+    __DIR__ . '/../vendor/autoload.php',
+    __DIR__ . '/../../../autoload.php',
+    __DIR__ . '/../../autoload.php',
+];
+
+$autoloadFound = false;
+foreach ($autoloadPaths as $autoloadPath) {
+    if (file_exists($autoloadPath)) {
+        require $autoloadPath;
+        $autoloadFound = true;
+        break;
+    }
+}
+
+if (! $autoloadFound) {
+    fwrite(STDERR, "Error: Could not find autoloader. Run 'composer install' first.\n");
+    exit(1);
+}
+
+/**
+ * Parse command line arguments
+ *
+ * @param string[] $args
+ *
+ * @return array{directory: string|null, format: string, exclude: string[], output: string|null, quiet: bool, colors: bool, help: bool}
+ */
+function parseArgs(array $args): array
+{
+    $options = [
+        'directory' => null,
+        'format' => 'console',
+        'exclude' => [],
+        'output' => null,
+        'quiet' => false,
+        'colors' => true,
+        'help' => false,
+    ];
+
+    // Remove script name
+    array_shift($args);
+
+    while (count($args) > 0) {
+        $arg = array_shift($args);
+
+        switch ($arg) {
+            case '-f':
+            case '--format':
+                $options['format'] = array_shift($args) ?? 'console';
+                break;
+
+            case '-e':
+            case '--exclude':
+                $pattern = array_shift($args);
+                if ($pattern !== null) {
+                    $options['exclude'][] = $pattern;
+                }
+
+                break;
+
+            case '-o':
+            case '--output':
+                $options['output'] = array_shift($args);
+                break;
+
+            case '-q':
+            case '--quiet':
+                $options['quiet'] = true;
+                break;
+
+            case '--no-colors':
+                $options['colors'] = false;
+                break;
+
+            case '-h':
+            case '--help':
+                $options['help'] = true;
+                break;
+
+            default:
+                if ($arg[0] !== '-' && $options['directory'] === null) {
+                    $options['directory'] = $arg;
+                }
+
+                break;
+        }
+    }
+
+    return $options;
+}
+
+/**
+ * Show help message
+ */
+function showHelp(): void
+{
+    echo <<<'HELP'
+BEAR Security Scanner - PHP Vulnerability Detection Tool
+
+Usage: bear.security-scan [options] <directory>
+
+Options:
+  -f, --format <format>   Output format:
+                          - console (default): Human-readable terminal output
+                          - json: JSON format for CI/CD integration
+                          - sarif: SARIF format for GitHub Security tab
+                          - checklist: OWASP Top 10 checklist (text)
+                          - checklist-json: OWASP Top 10 checklist (JSON)
+                          - checklist-html: OWASP Top 10 checklist (HTML)
+  -e, --exclude <pattern> Exclude pattern regex (can be used multiple times)
+  -o, --output <file>     Output file (default: stdout)
+  -q, --quiet             Suppress banner and extra output
+  --no-colors             Disable colored output
+  -h, --help              Show this help message
+
+Detectors:
+  - SQL Injection (A03)
+  - XSS (Cross-Site Scripting) (A03)
+  - Command Injection (A03)
+  - Path Traversal (A01)
+  - Remote File Inclusion / SSRF (A10)
+  - CSRF (A07)
+  - Dangerous Functions
+  - Session Security Issues (A07)
+
+Examples:
+  bear.security-scan ./src
+  bear.security-scan -f json ./src > report.json
+  bear.security-scan -f sarif ./src > report.sarif
+  bear.security-scan -f checklist ./src
+  bear.security-scan -f checklist-html -o report.html ./src
+  bear.security-scan -e '/vendor/' -e '/tests/' ./
+
+Exit codes:
+  0 - No vulnerabilities found
+  1 - Vulnerabilities found or error occurred
+
+HELP;
+}
+
+// Main
+$options = parseArgs($argv);
+
+if ($options['help']) {
+    showHelp();
+    exit(0);
+}
+
+if ($options['directory'] === null) {
+    fwrite(STDERR, "Error: No directory specified.\n\n");
+    showHelp();
+    exit(1);
+}
+
+$directory = realpath($options['directory']);
+
+if ($directory === false || ! is_dir($directory)) {
+    fwrite(STDERR, "Error: Directory not found: {$options['directory']}\n");
+    exit(1);
+}
+
+// Create scanner
+$scanner = new Scanner();
+
+// Set exclude patterns
+if (count($options['exclude']) > 0) {
+    $scanner->setExcludePatterns($options['exclude']);
+}
+
+// Show banner
+if (! $options['quiet'] && $options['format'] === 'console') {
+    fwrite(STDOUT, "\n");
+    fwrite(STDOUT, "  Scanning directory: {$directory}\n");
+    fwrite(STDOUT, "\n");
+}
+
+// Run scan
+$result = $scanner->scanDirectory($directory);
+
+// Format output
+if (str_starts_with($options['format'], 'checklist')) {
+    $checklistReport = new SecurityChecklistReport();
+    $checklistFormat = match ($options['format']) {
+        'checklist-json' => 'json',
+        'checklist-html' => 'html',
+        default => 'text',
+    };
+    $output = $checklistReport->generate($result, $checklistFormat);
+} else {
+    $formatter = match ($options['format']) {
+        'json' => new JsonOutput(),
+        'sarif' => new SarifOutput(),
+        default => new ConsoleOutput($options['colors']),
+    };
+    $output = $formatter->format($result);
+}
+
+// Write output
+if ($options['output'] !== null) {
+    file_put_contents($options['output'], $output);
+
+    if (! $options['quiet']) {
+        fwrite(STDOUT, "Report written to: {$options['output']}\n");
+    }
+} else {
+    fwrite(STDOUT, $output);
+}
+
+// Exit with appropriate code
+exit($result->hasCriticalOrHigh() ? 1 : 0);
