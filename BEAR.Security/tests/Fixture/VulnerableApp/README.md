@@ -49,3 +49,19 @@ AI Auditor should additionally detect:
 - Mass assignment vulnerability
 - Race condition (TOCTOU)
 - Timing attack vulnerability
+
+## False Positives (SafeButSuspicious.php)
+
+These should NOT be flagged:
+
+| Code Pattern | Why It's Safe |
+|--------------|---------------|
+| `$userInput` in prepared statement | Parameter binding prevents injection |
+| `exec()` on PDO | PDO::exec, not shell_exec |
+| `shell_exec()` with whitelist | Input validated against allowed list |
+| `serialize()` on internal data | Not deserializing user input |
+| `file_get_contents()` with basename | Path traversal prevented |
+| `md5()` for cache key | Non-security hash purpose |
+| Placeholder secrets | Values like `YOUR_API_KEY_HERE` |
+
+AI should recognize context and avoid false positives.
