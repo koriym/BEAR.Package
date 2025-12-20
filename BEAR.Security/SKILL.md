@@ -27,7 +27,7 @@ BEAR.Security provides comprehensive security analysis for BEAR.Sunday applicati
 
 ## Detectors
 
-### SAST Detectors (10)
+### SAST Detectors (14)
 
 1. **SqlInjectionDetector** - SQL injection via user input
 2. **XssDetector** - Cross-site scripting
@@ -39,6 +39,10 @@ BEAR.Security provides comprehensive security analysis for BEAR.Sunday applicati
 8. **InsecureDeserializationDetector** - Unsafe unserialize()
 9. **DangerousFunctionDetector** - eval(), exec(), system()
 10. **SessionSecurityDetector** - Session fixation, insecure cookies
+11. **OpenRedirectDetector** - Unvalidated redirects
+12. **XxeDetector** - XML External Entity attacks
+13. **HeaderInjectionDetector** - HTTP header injection
+14. **WeakRandomDetector** - Insecure random generation
 
 ### DAST Components
 

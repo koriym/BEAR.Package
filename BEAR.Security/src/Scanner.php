@@ -8,12 +8,16 @@ use BEAR\Security\Detector\CommandInjectionDetector;
 use BEAR\Security\Detector\CryptographicFailuresDetector;
 use BEAR\Security\Detector\CsrfDetector;
 use BEAR\Security\Detector\DangerousFunctionDetector;
+use BEAR\Security\Detector\HeaderInjectionDetector;
 use BEAR\Security\Detector\InsecureDeserializationDetector;
+use BEAR\Security\Detector\OpenRedirectDetector;
 use BEAR\Security\Detector\PathTraversalDetector;
 use BEAR\Security\Detector\RemoteFileInclusionDetector;
 use BEAR\Security\Detector\SessionSecurityDetector;
 use BEAR\Security\Detector\SqlInjectionDetector;
+use BEAR\Security\Detector\WeakRandomDetector;
 use BEAR\Security\Detector\XssDetector;
+use BEAR\Security\Detector\XxeDetector;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
@@ -60,6 +64,10 @@ final class Scanner
             new InsecureDeserializationDetector(),
             new DangerousFunctionDetector(),
             new SessionSecurityDetector(),
+            new OpenRedirectDetector(),
+            new XxeDetector(),
+            new HeaderInjectionDetector(),
+            new WeakRandomDetector(),
         ];
     }
 
