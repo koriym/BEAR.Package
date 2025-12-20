@@ -187,6 +187,24 @@ BEAR.Sunday framework provides security by design:
 | Ollama (14B+) | Free | Local | Medium |
 | Hybrid | Low | Mixed | Fast+Deep |
 
+### Project Structure Understanding
+
+AI can analyze the entire project and determine what needs scanning:
+
+| Directory | Scan? | Reason |
+|-----------|-------|--------|
+| `src/` | ✓ | Application code |
+| `src/Resource/` | ✓ | BEAR.Sunday resources (user input) |
+| `tests/` | - | Test code, not production |
+| `vendor/` | - | Use composer audit instead |
+| `var/tmp/` | - | Runtime temporary files |
+| `var/sql/` | ? | SQL migrations - intentional patterns |
+| `config/` | ✓ | May contain hardcoded secrets |
+| `bin/` | ✓ | CLI scripts |
+| `.env` | ✓ | Secrets exposure check |
+
+**AI Advantage**: Understands context. A SQL pattern in `var/sql/migration.sql` is intentional, but the same pattern in `src/Resource/App/User.php` is a vulnerability.
+
 ### Recommended Approach
 
 ```
