@@ -1,0 +1,87 @@
+<?xml version="1.0"?>
+<psalm
+    errorLevel="1"
+    resolveFromConfigFile="true"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="https://getpsalm.org/schema/config"
+    xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
+    findUnusedBaselineEntry="true"
+    findUnusedCode="false"
+    runTaintAnalysis="true"
+>
+    <projectFiles>
+        <directory name="src" />
+    </projectFiles>
+    <issueHandlers>
+        <!-- PHP 8.3+ feature, not required for PHP 8.1 minimum -->
+        <MissingOverrideAttribute errorLevel="suppress" />
+        <!-- Pattern strings are validated at runtime -->
+        <ArgumentTypeCoercion>
+            <errorLevel type="suppress">
+                <referencedFunction name="preg_match" />
+                <referencedFunction name="preg_match_all" />
+            </errorLevel>
+        </ArgumentTypeCoercion>
+        <!-- Callable type is validated -->
+        <MixedPropertyTypeCoercion errorLevel="suppress" />
+        <!-- HTTP response header is always set after file_get_contents -->
+        <RedundantCondition>
+            <errorLevel type="suppress">
+                <file name="src/Dast/DastScanner.php" />
+            </errorLevel>
+        </RedundantCondition>
+        <PossiblyUndefinedArrayOffset>
+            <errorLevel type="suppress">
+                <file name="src/Dast/DastScanner.php" />
+            </errorLevel>
+        </PossiblyUndefinedArrayOffset>
+        <RiskyTruthyFalsyComparison errorLevel="suppress" />
+        <!-- BEAR\Resource is a suggested dependency, not required -->
+        <UndefinedClass>
+            <errorLevel type="suppress">
+                <file name="src/Dast/SecurityTest.php" />
+                <file name="src/Dast/SecurityWorkflowTest.php" />
+            </errorLevel>
+        </UndefinedClass>
+        <UndefinedDocblockClass>
+            <errorLevel type="suppress">
+                <file name="src/Dast/SecurityTest.php" />
+                <file name="src/Dast/SecurityWorkflowTest.php" />
+            </errorLevel>
+        </UndefinedDocblockClass>
+        <MixedAssignment>
+            <errorLevel type="suppress">
+                <file name="src/Dast/SecurityTest.php" />
+                <file name="src/Dast/SecurityWorkflowTest.php" />
+                <file name="src/Analyzer/ComposerAuditScanner.php" />
+            </errorLevel>
+        </MixedAssignment>
+        <MixedArgumentTypeCoercion>
+            <errorLevel type="suppress">
+                <file name="src/Analyzer/ComposerAuditScanner.php" />
+            </errorLevel>
+        </MixedArgumentTypeCoercion>
+        <MixedPropertyFetch>
+            <errorLevel type="suppress">
+                <file name="src/Dast/SecurityTest.php" />
+                <file name="src/Dast/SecurityWorkflowTest.php" />
+            </errorLevel>
+        </MixedPropertyFetch>
+        <MixedArgument>
+            <errorLevel type="suppress">
+                <file name="src/Dast/SecurityTest.php" />
+            </errorLevel>
+        </MixedArgument>
+        <RedundantPropertyInitializationCheck>
+            <errorLevel type="suppress">
+                <file name="src/Dast/SecurityTest.php" />
+            </errorLevel>
+        </RedundantPropertyInitializationCheck>
+        <!-- Score calculation with int/float division -->
+        <InvalidOperand>
+            <errorLevel type="suppress">
+                <file name="src/Report/SecurityChecklistReport.php" />
+            </errorLevel>
+        </InvalidOperand>
+    </issueHandlers>
+</psalm>

@@ -1,0 +1,19 @@
+parameters:
+  level: max
+  paths:
+    - src
+    - tests
+  ignoreErrors:
+    # BEAR\Resource is a suggested dependency, not required
+    - '#class BEAR\\Resource\\ResourceInterface#'
+    - '#Cannot cast mixed to string#'
+    - '#Cannot access property \$code on mixed#'
+    - '#expects int, mixed given#'
+    # VulnerableCode.php contains intentionally vulnerable code for testing
+    -
+      message: '#.*#'
+      path: tests/Fake/VulnerableCode.php
+    # Test files accessing JSON decoded arrays
+    -
+      message: '#Cannot access offset .* on mixed#'
+      path: tests/SecurityChecklistReportTest.php
