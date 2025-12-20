@@ -13,43 +13,43 @@
 
 | Method | VADDY | BEAR.Security |
 |--------|-------|---------------|
-| SAST (Static Analysis) | ❌ | ✅ |
-| DAST (Dynamic Analysis) | ✅ | ✅ |
-| Psalm Taint Analysis | ❌ | ✅ |
-| Auto Crawling | ✅ | ❌ |
+| SAST (Static Analysis) | - | ✓ |
+| DAST (Dynamic Analysis) | ✓ | ✓ |
+| Psalm Taint Analysis | - | ✓ |
+| Auto Crawling | ✓ | - |
 
 ## Detection Comparison
 
 | Vulnerability | VADDY | BEAR.Security |
 |---------------|-------|---------------|
-| SQL Injection | ✅ | ✅ |
-| XSS | ✅ | ✅ |
-| Command Injection | ✅ | ✅ |
-| Path Traversal | ✅ | ✅ |
-| CSRF | ❌ | ✅ |
-| RFI/SSRF | ✅ (SSRF) | ✅ |
-| Cryptographic Failures | ❌ | ✅ |
-| Insecure Deserialization | ❌ | ✅ |
-| Hardcoded Secrets | ❌ | ✅ |
-| Security Headers | ✅ | ✅ |
-| Vulnerable Dependencies | ❌ | ✅ |
-| XML External Entity | ✅ | ❌ |
-| HTTP Header Injection | ✅ | ✅ |
+| SQL Injection | ✓ | ✓ |
+| XSS | ✓ | ✓ |
+| Command Injection | ✓ | ✓ |
+| Path Traversal | ✓ | ✓ |
+| CSRF | - | ✓ |
+| RFI/SSRF | ✓ (SSRF) | ✓ |
+| Cryptographic Failures | - | ✓ |
+| Insecure Deserialization | - | ✓ |
+| Hardcoded Secrets | - | ✓ |
+| Security Headers | ✓ | ✓ |
+| Vulnerable Dependencies | - | ✓ |
+| XML External Entity | ✓ | - |
+| HTTP Header Injection | ✓ | ✓ |
 
 ## OWASP Top 10 Coverage
 
 | Category | VADDY | BEAR.Security |
 |----------|-------|---------------|
-| A01: Broken Access Control | △ | ✅ |
-| A02: Cryptographic Failures | ❌ | ✅ |
-| A03: Injection | ✅ | ✅ |
-| A04: Insecure Design | ❌ | ✅ (BEAR design) |
-| A05: Security Misconfiguration | ✅ | ✅ |
-| A06: Vulnerable Components | ❌ | ✅ |
-| A07: Auth Failures | △ | ✅ |
-| A08: Integrity Failures | ❌ | ✅ |
-| A09: Logging Failures | ❌ | ✅ (BEAR DI) |
-| A10: SSRF | ✅ | ✅ |
+| A01: Broken Access Control | △ | ✓ |
+| A02: Cryptographic Failures | - | ✓ |
+| A03: Injection | ✓ | ✓ |
+| A04: Insecure Design | - | ✓ (BEAR design) |
+| A05: Security Misconfiguration | ✓ | ✓ |
+| A06: Vulnerable Components | - | ✓ |
+| A07: Auth Failures | △ | ✓ |
+| A08: Integrity Failures | - | ✓ |
+| A09: Logging Failures | - | ✓ (BEAR DI) |
+| A10: SSRF | ✓ | ✓ |
 
 ## BEAR.Security Only - Is It Enough?
 
