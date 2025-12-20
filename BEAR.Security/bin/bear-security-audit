@@ -1,0 +1,144 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+namespace BEAR\Security;
+
+use BEAR\Security\Ai\ClaudeAuditor;
+use BEAR\Security\Output\JsonOutput;
+use BEAR\Security\Output\SarifOutput;
+
+use function count;
+use function file_put_contents;
+use function in_array;
+use function is_dir;
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+// Parse arguments
+$args = $argv;
+array_shift($args);
+
+$path = null;
+$format = 'console';
+$output = null;
+
+for ($i = 0; $i < count($args); $i++) {
+    $arg = $args[$i];
+
+    if ($arg === '--format' && isset($args[$i + 1])) {
+        $format = $args[++$i];
+    } elseif ($arg === '--output' && isset($args[$i + 1])) {
+        $output = $args[++$i];
+    } elseif ($arg === '--help' || $arg === '-h') {
+        echo <<<HELP
+BEAR.Security AI Auditor
+
+Usage: bear-security-audit <path> [options]
+
+Options:
+  --format <format>   Output format: console, json, sarif (default: console)
+  --output <file>     Write output to file
+  --help, -h          Show this help
+
+Environment:
+  ANTHROPIC_API_KEY   Required. Your Anthropic API key.
+
+Examples:
+  bear-security-audit src
+  bear-security-audit src --format=sarif --output=results.sarif
+  ANTHROPIC_API_KEY=sk-xxx bear-security-audit src --format=json
+
+HELP;
+        exit(0);
+    } elseif ($path === null && !str_starts_with($arg, '-')) {
+        $path = $arg;
+    }
+}
+
+if ($path === null) {
+    fwrite(STDERR, "Error: No path specified\n");
+    fwrite(STDERR, "Usage: bear-security-audit <path> [--format=json|sarif]\n");
+    exit(1);
+}
+
+if (!is_dir($path)) {
+    fwrite(STDERR, "Error: Path does not exist: {$path}\n");
+    exit(1);
+}
+
+try {
+    $auditor = new ClaudeAuditor();
+    $result = $auditor->audit($path);
+
+    // Convert to ScanResult for output formatters
+    $scanResult = new ScanResult();
+    foreach ($result->vulnerabilities as $vuln) {
+        $scanResult->addVulnerabilities([$vuln]);
+    }
+    $scanResult->incrementFilesScanned();
+
+    $outputContent = match ($format) {
+        'json' => (new JsonOutput())->format($scanResult),
+        'sarif' => (new SarifOutput())->format($scanResult),
+        default => formatConsole($result),
+    };
+
+    if ($output !== null) {
+        file_put_contents($output, $outputContent);
+        echo "Results written to: {$output}\n";
+    } else {
+        echo $outputContent;
+    }
+
+    // Token usage summary
+    echo "\n" . $result->tokenTracker->getSummary() . "\n";
+
+    // Exit code: 1 if vulnerabilities found
+    exit(count($result->vulnerabilities) > 0 ? 1 : 0);
+
+} catch (\Exception $e) {
+    fwrite(STDERR, "Error: " . $e->getMessage() . "\n");
+    exit(2);
+}
+
+function formatConsole(\BEAR\Security\Ai\AuditResult $result): string
+{
+    $lines = [];
+    $lines[] = "╔════════════════════════════════════════════════════════════╗";
+    $lines[] = "║           BEAR.Security AI Audit Results                   ║";
+    $lines[] = "╚════════════════════════════════════════════════════════════╝";
+    $lines[] = "";
+
+    $grouped = $result->getVulnerabilitiesBySeverity();
+
+    foreach ($grouped as $severity => $vulns) {
+        if (count($vulns) === 0) {
+            continue;
+        }
+
+        $icon = match ($severity) {
+            'CRITICAL' => '🔴',
+            'HIGH' => '🟠',
+            'MEDIUM' => '🟡',
+            'LOW' => '🟢',
+            default => '⚪',
+        };
+
+        $lines[] = "{$icon} {$severity} (" . count($vulns) . ")";
+        $lines[] = str_repeat('─', 60);
+
+        foreach ($vulns as $vuln) {
+            $lines[] = "  [{$vuln->getType()}] {$vuln->getFile()}:{$vuln->getLine()}";
+            $lines[] = "    {$vuln->getDescription()}";
+            $lines[] = "";
+        }
+    }
+
+    $lines[] = "════════════════════════════════════════════════════════════";
+    $lines[] = "Total: " . count($result->vulnerabilities) . " vulnerabilities found";
+    $lines[] = "Files analyzed: " . $result->getFilesAnalyzedCount();
+
+    return implode("\n", $lines);
+}
