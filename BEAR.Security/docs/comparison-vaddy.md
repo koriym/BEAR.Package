@@ -16,7 +16,7 @@
 | SAST (Static Analysis) | - | ✓ |
 | DAST (Dynamic Analysis) | ✓ | ✓ |
 | Psalm Taint Analysis | - | ✓ |
-| Auto Crawling | ✓ | - |
+| Auto Crawling | ✓ | N/A (routes are defined) |
 
 ## Detection Comparison
 
