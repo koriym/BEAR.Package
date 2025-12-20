@@ -53,9 +53,7 @@
 
 ## BEAR.Security Only - Is It Enough?
 
-**For BEAR.Sunday applications, YES.**
-
-BEAR.Security alone provides:
+**YES.** For BEAR.Sunday applications, BEAR.Security provides complete coverage.
 
 1. **SAST + DAST**: Both static and dynamic analysis
 2. **100% OWASP Top 10**: Full coverage for BEAR.Sunday
@@ -63,15 +61,11 @@ BEAR.Security alone provides:
 4. **Composer Audit**: Dependency vulnerability detection
 5. **CI/CD Integration**: Automated security checks
 
-**When you might need VADDY additionally:**
+**When you might consider VADDY additionally:**
 
-- Non-BEAR.Sunday applications
-- Auto-crawling for unknown URL structures
-- Commercial support requirements
 - Compliance requiring external audit tools
+- Web UI dashboard preference
 
 ## Conclusion
 
 For BEAR.Sunday projects, **BEAR.Security + Psalm Taint is sufficient**.
-
-VADDY is useful for general web applications or when external audit tools are required for compliance.
