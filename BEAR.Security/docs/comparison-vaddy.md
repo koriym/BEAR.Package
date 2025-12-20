@@ -1,105 +1,77 @@
-# BEAR.Security vs VADDY Comparison
+# VADDY vs BEAR.Security Comparison
 
 ## Overview
 
-| Item | BEAR.Security | VADDY |
-|------|---------------|-------|
-| Type | OSS (MIT) | Commercial SaaS |
-| Target | BEAR.Sunday | General Web |
-| Price | Free | Monthly subscription |
-| Environment | Local/CI | Cloud |
+| Item | VADDY | BEAR.Security |
+|------|-------|---------------|
+| Type | Commercial SaaS | OSS (MIT) |
+| Target | General Web | BEAR.Sunday |
+| Price | Monthly subscription | Free |
+| Environment | Cloud | Local/CI |
 
 ## Testing Methods
 
-| Method | BEAR.Security | VADDY |
-|--------|---------------|-------|
-| SAST (Static Analysis) | ✅ | ❌ |
+| Method | VADDY | BEAR.Security |
+|--------|-------|---------------|
+| SAST (Static Analysis) | ❌ | ✅ |
 | DAST (Dynamic Analysis) | ✅ | ✅ |
-| Psalm Taint Analysis | ✅ | ❌ |
-| Auto Crawling | ❌ | ✅ |
+| Psalm Taint Analysis | ❌ | ✅ |
+| Auto Crawling | ✅ | ❌ |
 
 ## Detection Comparison
 
-| Vulnerability | BEAR.Security | VADDY |
-|---------------|---------------|-------|
+| Vulnerability | VADDY | BEAR.Security |
+|---------------|-------|---------------|
 | SQL Injection | ✅ | ✅ |
 | XSS | ✅ | ✅ |
 | Command Injection | ✅ | ✅ |
 | Path Traversal | ✅ | ✅ |
-| CSRF | ✅ | ❌ |
-| RFI/SSRF | ✅ | ✅ (SSRF) |
-| Cryptographic Failures | ✅ | ❌ |
-| Insecure Deserialization | ✅ | ❌ |
-| Hardcoded Secrets | ✅ | ❌ |
+| CSRF | ❌ | ✅ |
+| RFI/SSRF | ✅ (SSRF) | ✅ |
+| Cryptographic Failures | ❌ | ✅ |
+| Insecure Deserialization | ❌ | ✅ |
+| Hardcoded Secrets | ❌ | ✅ |
 | Security Headers | ✅ | ✅ |
-| Vulnerable Dependencies | ✅ | ❌ |
-| XML External Entity | ❌ | ✅ |
-| HTTP Header Injection | ❌ | ✅ |
+| Vulnerable Dependencies | ❌ | ✅ |
+| XML External Entity | ✅ | ❌ |
+| HTTP Header Injection | ✅ | ✅ |
 
 ## OWASP Top 10 Coverage
 
-| Category | BEAR.Security | VADDY |
-|----------|---------------|-------|
-| A01: Broken Access Control | ✅ | △ |
-| A02: Cryptographic Failures | ✅ | ❌ |
+| Category | VADDY | BEAR.Security |
+|----------|-------|---------------|
+| A01: Broken Access Control | △ | ✅ |
+| A02: Cryptographic Failures | ❌ | ✅ |
 | A03: Injection | ✅ | ✅ |
-| A04: Insecure Design | ✅ (BEAR design) | ❌ |
+| A04: Insecure Design | ❌ | ✅ (BEAR design) |
 | A05: Security Misconfiguration | ✅ | ✅ |
-| A06: Vulnerable Components | ✅ | ❌ |
-| A07: Auth Failures | ✅ | △ |
-| A08: Integrity Failures | ✅ | ❌ |
-| A09: Logging Failures | ✅ (BEAR DI) | ❌ |
+| A06: Vulnerable Components | ❌ | ✅ |
+| A07: Auth Failures | △ | ✅ |
+| A08: Integrity Failures | ❌ | ✅ |
+| A09: Logging Failures | ❌ | ✅ (BEAR DI) |
 | A10: SSRF | ✅ | ✅ |
 
-## Feature Comparison
+## BEAR.Security Only - Is It Enough?
 
-### BEAR.Security Strengths
+**For BEAR.Sunday applications, YES.**
 
-- **Source Code Analysis**: Detect issues before runtime
-- **Psalm Taint Integration**: High-precision data flow tracking
-- **BEAR.Sunday Optimized**: Detect framework convention violations
-- **CI/CD Integration**: GitHub Actions, SARIF support
-- **Free & OSS**: No cost, fully customizable
-- **Offline Execution**: No network required
+BEAR.Security alone provides:
 
-### VADDY Strengths
+1. **SAST + DAST**: Both static and dynamic analysis
+2. **100% OWASP Top 10**: Full coverage for BEAR.Sunday
+3. **Psalm Taint**: High-precision data flow tracking
+4. **Composer Audit**: Dependency vulnerability detection
+5. **CI/CD Integration**: Automated security checks
 
-- **Auto Crawling**: Just specify URL to scan
-- **Dashboard**: Web UI for results and reports
-- **Continuous Monitoring**: Scheduled scan feature
-- **Support**: Commercial support included
-- **Language Agnostic**: Works with any language
-
-## When to Use
-
-### BEAR.Security is best for
-
-- BEAR.Sunday applications
-- CI/CD pipeline integration
-- Early detection at source code level
-- Cost-conscious projects
-- Custom rule requirements
-
-### VADDY is best for
+**When you might need VADDY additionally:**
 
 - Non-BEAR.Sunday applications
-- Auto crawling requirement
-- Dashboard-based reporting
-- Commercial support needs
-- Multi-language/framework projects
+- Auto-crawling for unknown URL structures
+- Commercial support requirements
+- Compliance requiring external audit tools
 
-## Recommended: Use Both
+## Conclusion
 
-They are complementary:
+For BEAR.Sunday projects, **BEAR.Security + Psalm Taint is sufficient**.
 
-```
-Development: BEAR.Security (SAST) + Psalm Taint
-    ↓
-CI/CD: BEAR.Security (automated)
-    ↓
-Pre-release: VADDY (DAST/crawling)
-    ↓
-Production: Periodic monitoring
-```
-
-Use BEAR.Security during development for early detection, and VADDY for production environment dynamic testing.
+VADDY is useful for general web applications or when external audit tools are required for compliance.
