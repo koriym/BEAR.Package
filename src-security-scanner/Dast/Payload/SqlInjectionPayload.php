@@ -16,6 +16,7 @@ final class SqlInjectionPayload implements PayloadInterface
         return 'SQL Injection';
     }
 
+    /** @return string[] */
     public function getPayloads(): array
     {
         return [
@@ -24,9 +25,9 @@ final class SqlInjectionPayload implements PayloadInterface
             "' OR '1'='1' --",
             "' OR '1'='1' /*",
             "1' OR '1'='1",
-            "1 OR 1=1",
+            '1 OR 1=1',
             "' OR 1=1--",
-            "\" OR \"1\"=\"1",
+            '" OR "1"="1',
 
             // Union-based injection
             "' UNION SELECT NULL--",
@@ -48,7 +49,7 @@ final class SqlInjectionPayload implements PayloadInterface
 
             // Stacked queries
             "'; DROP TABLE users--",
-            "1; SELECT * FROM users--",
+            '1; SELECT * FROM users--',
 
             // NoSQL injection (MongoDB)
             '{"\$gt": ""}',
@@ -56,6 +57,7 @@ final class SqlInjectionPayload implements PayloadInterface
         ];
     }
 
+    /** @return string[] */
     public function getSuccessPatterns(): array
     {
         return [

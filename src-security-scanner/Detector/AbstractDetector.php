@@ -6,7 +6,6 @@ namespace BEAR\SecurityScanner\Detector;
 
 use BEAR\SecurityScanner\DetectorInterface;
 use BEAR\SecurityScanner\Vulnerability;
-use BEAR\SecurityScanner\VulnerabilityInterface;
 
 use function array_slice;
 use function count;
@@ -48,7 +47,7 @@ abstract class AbstractDetector implements DetectorInterface
                     $match['line'],
                     $config['description'],
                     $match['code'],
-                    $config['recommendation']
+                    $config['recommendation'],
                 );
             }
         }

@@ -16,6 +16,7 @@ final class CommandInjectionPayload implements PayloadInterface
         return 'Command Injection';
     }
 
+    /** @return string[] */
     public function getPayloads(): array
     {
         return [
@@ -42,8 +43,8 @@ final class CommandInjectionPayload implements PayloadInterface
             '| net user',
 
             // Newline injection
-            "%0aid",
-            "%0d%0aid",
+            '%0aid',
+            '%0d%0aid',
             "\nid",
             "\r\nid",
 
@@ -66,6 +67,7 @@ final class CommandInjectionPayload implements PayloadInterface
         ];
     }
 
+    /** @return string[] */
     public function getSuccessPatterns(): array
     {
         return [

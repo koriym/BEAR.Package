@@ -9,7 +9,11 @@ use BEAR\SecurityScanner\Vulnerability;
 use BEAR\SecurityScanner\VulnerabilityInterface;
 
 use function preg_match;
+use function preg_replace;
 use function sprintf;
+use function strlen;
+use function strtoupper;
+use function substr;
 
 /**
  * Analyzes HTTP responses for security vulnerabilities
@@ -18,16 +22,14 @@ final class ResponseAnalyzer
 {
     /**
      * Analyze response for vulnerabilities based on payload
-     *
-     * @return VulnerabilityInterface|null
      */
     public function analyze(
         PayloadInterface $payload,
         string $responseBody,
         int $responseCode,
         string $url,
-        string $usedPayload
-    ): ?VulnerabilityInterface {
+        string $usedPayload,
+    ): VulnerabilityInterface|null {
         // Check for success patterns in response
         foreach ($payload->getSuccessPatterns() as $pattern) {
             if (preg_match($pattern, $responseBody)) {
@@ -39,10 +41,10 @@ final class ResponseAnalyzer
                     sprintf(
                         '%s - Payload: %s',
                         $payload->getDescription(),
-                        $this->truncatePayload($usedPayload)
+                        $this->truncatePayload($usedPayload),
                     ),
                     sprintf('Response matched pattern: %s', $pattern),
-                    $payload->getRecommendation()
+                    $payload->getRecommendation(),
                 );
             }
         }
@@ -63,8 +65,8 @@ final class ResponseAnalyzer
         string $responseBody,
         int $responseCode,
         string $url,
-        string $payload
-    ): ?VulnerabilityInterface {
+        string $payload,
+    ): VulnerabilityInterface|null {
         // Stack trace exposure
         if (preg_match('/Stack trace:|Traceback \(most recent|at .+\(.+:\d+\)/i', $responseBody)) {
             return new Vulnerability(
@@ -74,7 +76,7 @@ final class ResponseAnalyzer
                 0,
                 'Stack trace exposed in error response - may reveal sensitive information',
                 sprintf('Triggered by payload: %s', $this->truncatePayload($payload)),
-                'Disable detailed error messages in production. Use custom error pages.'
+                'Disable detailed error messages in production. Use custom error pages.',
             );
         }
 
@@ -87,7 +89,7 @@ final class ResponseAnalyzer
                 0,
                 'Database connection string exposed in response',
                 sprintf('Triggered by payload: %s', $this->truncatePayload($payload)),
-                'Never expose connection strings. Use environment variables and proper error handling.'
+                'Never expose connection strings. Use environment variables and proper error handling.',
             );
         }
 
@@ -100,7 +102,7 @@ final class ResponseAnalyzer
                 0,
                 'Server file path disclosed in response',
                 sprintf('Triggered by payload: %s', $this->truncatePayload($payload)),
-                'Avoid exposing absolute paths in error messages.'
+                'Avoid exposing absolute paths in error messages.',
             );
         }
 
@@ -113,7 +115,7 @@ final class ResponseAnalyzer
                 0,
                 'Server error triggered by malicious input - may indicate vulnerability',
                 sprintf('Payload: %s caused HTTP 500', $this->truncatePayload($payload)),
-                'Investigate why this input causes server errors. Ensure proper input validation.'
+                'Investigate why this input causes server errors. Ensure proper input validation.',
             );
         }
 

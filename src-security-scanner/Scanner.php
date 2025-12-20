@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace BEAR\SecurityScanner;
 
 use BEAR\SecurityScanner\Detector\CommandInjectionDetector;
+use BEAR\SecurityScanner\Detector\CryptographicFailuresDetector;
+use BEAR\SecurityScanner\Detector\CsrfDetector;
 use BEAR\SecurityScanner\Detector\DangerousFunctionDetector;
+use BEAR\SecurityScanner\Detector\InsecureDeserializationDetector;
 use BEAR\SecurityScanner\Detector\PathTraversalDetector;
+use BEAR\SecurityScanner\Detector\RemoteFileInclusionDetector;
 use BEAR\SecurityScanner\Detector\SessionSecurityDetector;
 use BEAR\SecurityScanner\Detector\SqlInjectionDetector;
 use BEAR\SecurityScanner\Detector\XssDetector;
@@ -36,17 +40,13 @@ final class Scanner
     /** @var string[] */
     private array $includeExtensions = ['php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'phps'];
 
-    /**
-     * @param DetectorInterface[]|null $detectors Custom detectors or null for defaults
-     */
-    public function __construct(?array $detectors = null)
+    /** @param DetectorInterface[]|null $detectors Custom detectors or null for defaults */
+    public function __construct(array|null $detectors = null)
     {
         $this->detectors = $detectors ?? $this->getDefaultDetectors();
     }
 
-    /**
-     * @return DetectorInterface[]
-     */
+    /** @return DetectorInterface[] */
     private function getDefaultDetectors(): array
     {
         return [
@@ -54,6 +54,10 @@ final class Scanner
             new XssDetector(),
             new CommandInjectionDetector(),
             new PathTraversalDetector(),
+            new RemoteFileInclusionDetector(),
+            new CsrfDetector(),
+            new CryptographicFailuresDetector(),
+            new InsecureDeserializationDetector(),
             new DangerousFunctionDetector(),
             new SessionSecurityDetector(),
         ];
@@ -102,7 +106,7 @@ final class Scanner
         $result = new ScanResult();
 
         $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($directory)
+            new RecursiveDirectoryIterator($directory),
         );
 
         /** @var SplFileInfo $file */

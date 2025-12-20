@@ -14,20 +14,9 @@ use function round;
  */
 final class ScanResult
 {
-    /** @var VulnerabilityInterface[] */
-    private array $vulnerabilities = [];
-
-    private int $filesScanned = 0;
-    private float $scanTime = 0.0;
-
-    /**
-     * @param VulnerabilityInterface[] $vulnerabilities
-     */
-    public function __construct(array $vulnerabilities = [], int $filesScanned = 0, float $scanTime = 0.0)
+    /** @param VulnerabilityInterface[] $vulnerabilities */
+    public function __construct(private array $vulnerabilities = [], private int $filesScanned = 0, private float $scanTime = 0.0)
     {
-        $this->vulnerabilities = $vulnerabilities;
-        $this->filesScanned = $filesScanned;
-        $this->scanTime = $scanTime;
     }
 
     public function addVulnerability(VulnerabilityInterface $vulnerability): void
@@ -35,9 +24,7 @@ final class ScanResult
         $this->vulnerabilities[] = $vulnerability;
     }
 
-    /**
-     * @param VulnerabilityInterface[] $vulnerabilities
-     */
+    /** @param VulnerabilityInterface[] $vulnerabilities */
     public function addVulnerabilities(array $vulnerabilities): void
     {
         foreach ($vulnerabilities as $vulnerability) {
@@ -55,22 +42,18 @@ final class ScanResult
         $this->scanTime = $time;
     }
 
-    /**
-     * @return VulnerabilityInterface[]
-     */
+    /** @return VulnerabilityInterface[] */
     public function getVulnerabilities(): array
     {
         return $this->vulnerabilities;
     }
 
-    /**
-     * @return VulnerabilityInterface[]
-     */
+    /** @return VulnerabilityInterface[] */
     public function getVulnerabilitiesBySeverity(string $severity): array
     {
         return array_filter(
             $this->vulnerabilities,
-            static fn (VulnerabilityInterface $v): bool => $v->getSeverity() === $severity
+            static fn (VulnerabilityInterface $v): bool => $v->getSeverity() === $severity,
         );
     }
 
@@ -119,9 +102,7 @@ final class ScanResult
         return $this->getCriticalCount() > 0 || $this->getHighCount() > 0;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     public function toArray(): array
     {
         return [
@@ -142,7 +123,7 @@ final class ScanResult
                     'line' => $v->getLine(),
                     'description' => $v->getDescription(),
                 ],
-                $this->vulnerabilities
+                $this->vulnerabilities,
             ),
         ];
     }

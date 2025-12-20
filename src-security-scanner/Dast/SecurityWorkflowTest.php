@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace BEAR\SecurityScanner\Dast;
 
-use BEAR\Dev\Http\HttpResource;
 use BEAR\Resource\ResourceInterface;
+use BEAR\SecurityScanner\VulnerabilityInterface;
+use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\TestCase;
+
+use function array_merge;
 
 /**
  * Base class for HTTP-based security workflow testing
@@ -46,13 +49,14 @@ use PHPUnit\Framework\TestCase;
  */
 abstract class SecurityWorkflowTest extends TestCase
 {
-    use SecurityTestTrait;
+    use SecurityTest;
 
     protected ResourceInterface $resource;
 
     protected function setUp(): void
     {
         parent::setUp();
+
         $this->initSecurityTesting();
     }
 
@@ -88,7 +92,7 @@ abstract class SecurityWorkflowTest extends TestCase
             try {
                 $this->assertSecure($endpoint);
                 $passed++;
-            } catch (\PHPUnit\Framework\AssertionFailedError $e) {
+            } catch (AssertionFailedError) {
                 $failed++;
                 $allVulnerabilities = array_merge($allVulnerabilities, $this->detectedVulnerabilities);
             }

@@ -5,18 +5,30 @@ declare(strict_types=1);
 namespace BEAR\SecurityScanner\Dast;
 
 use BEAR\SecurityScanner\Dast\Analyzer\ResponseAnalyzer;
+use BEAR\SecurityScanner\Dast\Analyzer\SecurityHeadersAnalyzer;
 use BEAR\SecurityScanner\Dast\Payload\CommandInjectionPayload;
+use BEAR\SecurityScanner\Dast\Payload\CsrfPayload;
 use BEAR\SecurityScanner\Dast\Payload\PathTraversalPayload;
 use BEAR\SecurityScanner\Dast\Payload\PayloadInterface;
+use BEAR\SecurityScanner\Dast\Payload\RemoteFileInclusionPayload;
 use BEAR\SecurityScanner\Dast\Payload\SqlInjectionPayload;
 use BEAR\SecurityScanner\Dast\Payload\XssPayload;
 use BEAR\SecurityScanner\ScanResult;
 use BEAR\SecurityScanner\VulnerabilityInterface;
+use Throwable;
 
 use function array_merge;
+use function date;
+use function explode;
+use function file_get_contents;
 use function file_put_contents;
 use function microtime;
+use function preg_match;
 use function sprintf;
+use function stream_context_create;
+use function strlen;
+use function strpos;
+use function trim;
 use function urlencode;
 
 use const FILE_APPEND;
@@ -31,23 +43,32 @@ final class DastScanner
 {
     /** @var PayloadInterface[] */
     private array $payloads;
-
     private ResponseAnalyzer $analyzer;
+    private SecurityHeadersAnalyzer $headersAnalyzer;
 
     /** @var callable(string, string): array{code: int, body: string, headers: array<string, string>} */
     private $httpClient;
-
-    private ?string $logFile = null;
+    private string|null $logFile = null;
+    private bool $checkHeaders = true;
 
     /**
-     * @param PayloadInterface[]|null $payloads Custom payloads or null for defaults
-     * @param callable|null $httpClient Custom HTTP client function
+     * @param PayloadInterface[]|null $payloads   Custom payloads or null for defaults
+     * @param callable|null           $httpClient Custom HTTP client function
      */
-    public function __construct(?array $payloads = null, ?callable $httpClient = null)
+    public function __construct(array|null $payloads = null, callable|null $httpClient = null)
     {
         $this->payloads = $payloads ?? $this->getDefaultPayloads();
         $this->analyzer = new ResponseAnalyzer();
+        $this->headersAnalyzer = new SecurityHeadersAnalyzer();
         $this->httpClient = $httpClient ?? [$this, 'defaultHttpClient'];
+    }
+
+    /** Enable or disable security headers checking */
+    public function setCheckHeaders(bool $enabled): self
+    {
+        $this->checkHeaders = $enabled;
+
+        return $this;
     }
 
     /**
@@ -60,9 +81,7 @@ final class DastScanner
         return $this;
     }
 
-    /**
-     * @return PayloadInterface[]
-     */
+    /** @return PayloadInterface[] */
     private function getDefaultPayloads(): array
     {
         return [
@@ -70,16 +89,18 @@ final class DastScanner
             new XssPayload(),
             new CommandInjectionPayload(),
             new PathTraversalPayload(),
+            new RemoteFileInclusionPayload(),
+            new CsrfPayload(),
         ];
     }
 
     /**
      * Scan a single endpoint with all payloads
      *
-     * @param string $baseUrl Base URL of the application
-     * @param string $endpoint Endpoint path with %s placeholder for payload
-     * @param string $method HTTP method (GET, POST, etc.)
-     * @param array<string, string> $headers Additional headers
+     * @param string                $baseUrl  Base URL of the application
+     * @param string                $endpoint Endpoint path with %s placeholder for payload
+     * @param string                $method   HTTP method (GET, POST, etc.)
+     * @param array<string, string> $headers  Additional headers
      *
      * @return VulnerabilityInterface[]
      */
@@ -87,7 +108,7 @@ final class DastScanner
         string $baseUrl,
         string $endpoint,
         string $method = 'GET',
-        array $headers = []
+        array $headers = [],
     ): array {
         $vulnerabilities = [];
 
@@ -100,17 +121,49 @@ final class DastScanner
     }
 
     /**
+     * Scan security headers of an endpoint
+     *
+     * @param string $url The URL to check
+     *
+     * @return VulnerabilityInterface[]
+     */
+    public function scanSecurityHeaders(string $url): array
+    {
+        try {
+            $response = ($this->httpClient)($url, 'GET');
+
+            $this->log(sprintf('[Security Headers] Checking: %s', $url));
+
+            $vulnerabilities = $this->headersAnalyzer->analyze($response['headers'], $url);
+
+            foreach ($vulnerabilities as $vuln) {
+                $this->log(sprintf('  [!] %s: %s', $vuln->getType(), $vuln->getDescription()));
+            }
+
+            return $vulnerabilities;
+        } catch (Throwable $e) {
+            $this->log(sprintf('[Security Headers] Error: %s', $e->getMessage()));
+
+            return [];
+        }
+    }
+
+    /**
      * Scan multiple endpoints
      *
-     * @param string $baseUrl Base URL of the application
+     * @param string   $baseUrl   Base URL of the application
      * @param string[] $endpoints Array of endpoint paths
-     *
-     * @return ScanResult
      */
     public function scan(string $baseUrl, array $endpoints): ScanResult
     {
         $startTime = microtime(true);
         $result = new ScanResult();
+
+        // Check security headers once for the base URL
+        if ($this->checkHeaders) {
+            $headerVulnerabilities = $this->scanSecurityHeaders($baseUrl);
+            $result->addVulnerabilities($headerVulnerabilities);
+        }
 
         foreach ($endpoints as $endpoint) {
             $vulnerabilities = $this->scanEndpoint($baseUrl, $endpoint);
@@ -126,6 +179,8 @@ final class DastScanner
     /**
      * Test a single payload type against an endpoint
      *
+     * @param array<string, string> $headers Additional headers
+     *
      * @return VulnerabilityInterface[]
      */
     private function testPayloads(
@@ -133,34 +188,34 @@ final class DastScanner
         string $endpoint,
         PayloadInterface $payloadType,
         string $method,
-        array $headers
+        array $headers,
     ): array {
         $vulnerabilities = [];
 
         foreach ($payloadType->getPayloads() as $payload) {
             $url = $baseUrl . sprintf($endpoint, urlencode($payload));
 
-            $this->log(sprintf("[%s] Testing: %s with payload: %s", $payloadType->getName(), $url, $payload));
+            $this->log(sprintf('[%s] Testing: %s with payload: %s', $payloadType->getName(), $url, $payload));
 
             try {
                 $response = ($this->httpClient)($url, $method);
 
-                $this->log(sprintf("  Response: %d bytes, code: %d", strlen($response['body']), $response['code']));
+                $this->log(sprintf('  Response: %d bytes, code: %d', strlen($response['body']), $response['code']));
 
                 $vulnerability = $this->analyzer->analyze(
                     $payloadType,
                     $response['body'],
                     $response['code'],
                     $url,
-                    $payload
+                    $payload,
                 );
 
                 if ($vulnerability !== null) {
                     $vulnerabilities[] = $vulnerability;
-                    $this->log(sprintf("  [!] VULNERABILITY DETECTED: %s", $vulnerability->getType()));
+                    $this->log(sprintf('  [!] VULNERABILITY DETECTED: %s', $vulnerability->getType()));
                 }
-            } catch (\Throwable $e) {
-                $this->log(sprintf("  [ERROR] %s", $e->getMessage()));
+            } catch (Throwable $e) {
+                $this->log(sprintf('  [ERROR] %s', $e->getMessage()));
             }
         }
 
@@ -187,7 +242,7 @@ final class DastScanner
         // Parse response code from headers
         $code = 0;
         $responseHeaders = [];
-        if (isset($http_response_header)) {
+        if ($http_response_header !== []) {
             foreach ($http_response_header as $header) {
                 if (preg_match('/^HTTP\/[\d.]+ (\d+)/', $header, $matches)) {
                     $code = (int) $matches[1];
@@ -216,8 +271,8 @@ final class DastScanner
 
         file_put_contents(
             $this->logFile,
-            sprintf("[%s] %s%s", date('Y-m-d H:i:s'), $message, PHP_EOL),
-            FILE_APPEND
+            sprintf('[%s] %s%s', date('Y-m-d H:i:s'), $message, PHP_EOL),
+            FILE_APPEND,
         );
     }
 }

@@ -16,11 +16,8 @@ use const JSON_UNESCAPED_SLASHES;
  */
 final class JsonOutput implements OutputInterface
 {
-    private bool $prettyPrint;
-
-    public function __construct(bool $prettyPrint = true)
+    public function __construct(private bool $prettyPrint = true)
     {
-        $this->prettyPrint = $prettyPrint;
     }
 
     public function format(ScanResult $result): string

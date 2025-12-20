@@ -16,6 +16,7 @@ final class XssPayload implements PayloadInterface
         return 'Cross-Site Scripting (XSS)';
     }
 
+    /** @return string[] */
     public function getPayloads(): array
     {
         return [
@@ -61,6 +62,7 @@ final class XssPayload implements PayloadInterface
         ];
     }
 
+    /** @return string[] */
     public function getSuccessPatterns(): array
     {
         return [

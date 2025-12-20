@@ -7,16 +7,12 @@ namespace BEAR\SecurityScanner\Output;
 use BEAR\SecurityScanner\ScanResult;
 use BEAR\SecurityScanner\VulnerabilityInterface;
 
-use function count;
-use function round;
+use function explode;
 use function sprintf;
-use function str_pad;
 use function str_repeat;
-use function strlen;
 use function strtoupper;
 
 use const PHP_EOL;
-use const STR_PAD_LEFT;
 
 /**
  * Console output formatter with colors
@@ -31,11 +27,8 @@ final class ConsoleOutput implements OutputInterface
     private const COLOR_WHITE = "\033[37m";
     private const COLOR_BOLD = "\033[1m";
 
-    private bool $useColors;
-
-    public function __construct(bool $useColors = true)
+    public function __construct(private bool $useColors = true)
     {
-        $this->useColors = $useColors;
     }
 
     public function format(ScanResult $result): string
@@ -128,17 +121,17 @@ final class ConsoleOutput implements OutputInterface
         $severityColor = $this->getSeverityColor($vuln->getSeverity());
 
         $output = PHP_EOL;
-        $output .= sprintf("  [%d] ", $index);
+        $output .= sprintf('  [%d] ', $index);
         $output .= $this->color(
             sprintf('[%s]', strtoupper($vuln->getSeverity())),
-            $severityColor
+            $severityColor,
         );
         $output .= sprintf(" %s\n", $vuln->getType());
         $output .= sprintf("      File: %s:%d\n", $vuln->getFile(), $vuln->getLine());
         $output .= sprintf("      Description: %s\n", $vuln->getDescription());
         $output .= $this->color(
             sprintf("      Recommendation: %s\n", $vuln->getRecommendation()),
-            self::COLOR_CYAN
+            self::COLOR_CYAN,
         );
 
         $snippet = $vuln->getCodeSnippet();

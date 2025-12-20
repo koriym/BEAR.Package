@@ -16,6 +16,7 @@ final class PathTraversalPayload implements PayloadInterface
         return 'Path Traversal / LFI';
     }
 
+    /** @return string[] */
     public function getPayloads(): array
     {
         return [
@@ -56,6 +57,7 @@ final class PathTraversalPayload implements PayloadInterface
         ];
     }
 
+    /** @return string[] */
     public function getSuccessPatterns(): array
     {
         return [
