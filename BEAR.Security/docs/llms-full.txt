@@ -1,0 +1,205 @@
+# BEAR.Security - Full Documentation for LLMs
+
+> Security scanner for BEAR.Sunday applications with OWASP Top 10 compliance
+
+## Package Information
+
+- Name: bear/security
+- Namespace: BEAR\Security
+- License: MIT
+- PHP: ^8.1
+- Repository: https://github.com/bearsunday/BEAR.Security
+
+## Architecture
+
+```
+BEAR\Security
+├── Scanner              # Main scanner class
+├── Detector/            # SAST vulnerability detectors
+│   ├── AbstractDetector
+│   ├── SqlInjectionDetector
+│   ├── XssDetector
+│   ├── CommandInjectionDetector
+│   ├── PathTraversalDetector
+│   ├── RemoteFileInclusionDetector
+│   ├── CsrfDetector
+│   ├── CryptographicFailuresDetector
+│   ├── InsecureDeserializationDetector
+│   ├── DangerousFunctionDetector
+│   └── SessionSecurityDetector
+├── Dast/                # Dynamic analysis
+│   ├── DastScanner
+│   ├── SecurityTest
+│   ├── Analyzer/
+│   │   ├── ResponseAnalyzer
+│   │   └── SecurityHeadersAnalyzer
+│   └── Payload/         # Attack payloads
+├── Analyzer/
+│   └── ComposerAuditScanner
+├── Output/              # Output formatters
+│   ├── ConsoleOutput
+│   ├── JsonOutput
+│   ├── SarifOutput
+│   └── OutputInterface
+├── Report/
+│   └── SecurityChecklistReport
+├── ScanResult
+├── Vulnerability
+├── VulnerabilityInterface
+└── DetectorInterface
+```
+
+## OWASP Top 10 (2021) Coverage
+
+| ID | Category | Detection Method |
+|----|----------|------------------|
+| A01 | Broken Access Control | PathTraversalDetector |
+| A02 | Cryptographic Failures | CryptographicFailuresDetector |
+| A03 | Injection | SqlInjection, XSS, CommandInjection |
+| A04 | Insecure Design | BEAR.Sunday ROA (framework) |
+| A05 | Security Misconfiguration | SecurityHeadersAnalyzer |
+| A06 | Vulnerable Components | ComposerAuditScanner |
+| A07 | Auth Failures | SessionSecurityDetector, CsrfDetector |
+| A08 | Integrity Failures | InsecureDeserializationDetector |
+| A09 | Logging Failures | PSR-3 Logger via DI (framework) |
+| A10 | SSRF | RemoteFileInclusionDetector |
+
+## CLI Usage
+
+```bash
+# Basic scan
+vendor/bin/bear.security-scan src
+
+# JSON output
+vendor/bin/bear.security-scan src --format=json
+
+# SARIF for GitHub
+vendor/bin/bear.security-scan src --format=sarif
+
+# OWASP checklist
+vendor/bin/bear.security-scan src --format=checklist
+vendor/bin/bear.security-scan src --format=checklist-html
+vendor/bin/bear.security-scan src --format=checklist-json
+
+# Exclude patterns
+vendor/bin/bear.security-scan src --exclude='/vendor/' --exclude='/tests/'
+
+# Output to file
+vendor/bin/bear.security-scan src --format=json --output=report.json
+```
+
+## Programmatic Usage
+
+```php
+use BEAR\Security\Scanner;
+use BEAR\Security\Output\JsonOutput;
+use BEAR\Security\Report\SecurityChecklistReport;
+
+// Basic scan
+$scanner = new Scanner();
+$result = $scanner->scanDirectory('./src');
+
+// Get vulnerabilities
+foreach ($result->getVulnerabilities() as $vuln) {
+    echo $vuln->getSeverity() . ': ' . $vuln->getType();
+    echo ' in ' . $vuln->getFile() . ':' . $vuln->getLine();
+}
+
+// JSON output
+$output = new JsonOutput();
+echo $output->format($result);
+
+// OWASP checklist
+$report = new SecurityChecklistReport();
+echo $report->generate($result, 'html');
+```
+
+## Custom Detector
+
+```php
+use BEAR\Security\Detector\AbstractDetector;
+
+class CustomDetector extends AbstractDetector
+{
+    protected array $patterns = [
+        'CUSTOM_VULN' => [
+            'pattern' => '/dangerous_call\s*\(/i',
+            'severity' => 'HIGH',
+            'description' => 'Dangerous function detected',
+            'recommendation' => 'Use safe alternative',
+        ],
+    ];
+}
+
+$scanner = new Scanner();
+$scanner->addDetector(new CustomDetector());
+```
+
+## Severity Levels
+
+- CRITICAL: Remote code execution, SQL injection
+- HIGH: XSS, command injection, path traversal
+- MEDIUM: CSRF, session issues, weak crypto
+- LOW: Information disclosure, minor issues
+
+## GitHub Actions Integration
+
+```yaml
+- name: Security Scan
+  run: |
+    composer require --dev bear/security
+    vendor/bin/bear.security-scan src --format=sarif > results.sarif
+
+- name: Upload to GitHub Security
+  uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: results.sarif
+```
+
+## Psalm Taint Analysis
+
+This package has `runTaintAnalysis="true"` enabled in psalm.xml for data flow tracking.
+
+```bash
+vendor/bin/psalm --taint-analysis
+```
+
+## File Structure
+
+```
+bear/security/
+├── bin/
+│   └── bear.security-scan    # CLI entry point
+├── src/
+│   ├── Scanner.php           # Main scanner
+│   ├── ScanResult.php        # Scan results container
+│   ├── Vulnerability.php     # Vulnerability entity
+│   ├── Detector/             # Pattern-based detectors
+│   ├── Dast/                 # Dynamic testing
+│   ├── Analyzer/             # Additional analyzers
+│   ├── Output/               # Output formatters
+│   └── Report/               # Report generators
+├── tests/
+├── docs/
+│   ├── github-actions.md
+│   ├── comparison-vaddy.md
+│   ├── llms.txt
+│   └── llms-full.txt
+├── composer.json
+├── psalm.xml
+├── phpstan.neon
+└── README.md
+```
+
+## Dependencies
+
+Required:
+- PHP ^8.1
+
+Dev:
+- phpunit/phpunit
+- vimeo/psalm
+- phpstan/phpstan
+
+Suggested:
+- bear/devtools (for DAST with HTTP workflow tests)

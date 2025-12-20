@@ -13,6 +13,8 @@ Security scanner for BEAR.Sunday applications with OWASP Top 10 compliance.
 - **GitHub Security Integration** - SARIF output for Security tab
 - **Psalm Taint Analysis** - Data flow tracking enabled
 
+See also: [Comparison with VADDY](docs/comparison-vaddy.md)
+
 ## Installation
 
 ```bash
@@ -202,6 +204,12 @@ vendor/bin/psalm --taint-analysis
 
 - PHP 8.1+
 - BEAR.Sunday application (recommended)
+
+## Documentation
+
+- [GitHub Actions Integration](docs/github-actions.md)
+- [Comparison with VADDY](docs/comparison-vaddy.md)
+- [LLM Context](docs/llms.txt) | [Full](docs/llms-full.txt)
 
 ## License
 
