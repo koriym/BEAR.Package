@@ -1,0 +1,49 @@
+# AI Security Audit with Anthropic API
+# Copy to .github/workflows/ai-audit.yml
+
+name: AI Security Audit
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  ai-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Install dependencies
+        run: composer install --no-dev
+
+      - name: Run AI Security Audit
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          vendor/bin/bear.security-audit src \
+            --provider=anthropic \
+            --model=claude-sonnet-4-20250514 \
+            --format=sarif \
+            --output=ai-audit.sarif
+
+      - name: Upload to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ai-audit.sarif
+
+      - name: Post summary
+        run: |
+          echo "## AI Audit Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Token Usage" >> $GITHUB_STEP_SUMMARY
+          cat ai-audit-tokens.txt >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No token data" >> $GITHUB_STEP_SUMMARY

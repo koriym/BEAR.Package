@@ -7,9 +7,9 @@ namespace BEAR\Security\Ai;
 use BEAR\Security\VulnerabilityInterface;
 
 /**
- * Result of AI-powered security analysis
+ * Result of AI-powered security audit
  */
-final class AiAnalysisResult
+final class AuditResult
 {
     /**
      * @param list<VulnerabilityInterface> $vulnerabilities Found vulnerabilities

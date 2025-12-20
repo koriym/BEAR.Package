@@ -1,0 +1,52 @@
+# AI Security Audit with AWS Bedrock
+# Copy to .github/workflows/ai-audit.yml
+
+name: AI Security Audit
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  id-token: write  # For OIDC
+
+jobs:
+  ai-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Install dependencies
+        run: composer install --no-dev
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-northeast-1
+
+      - name: Run AI Security Audit
+        run: |
+          vendor/bin/bear.security-audit src \
+            --provider=bedrock \
+            --model=anthropic.claude-3-sonnet-20240229-v1:0 \
+            --format=sarif \
+            --output=ai-audit.sarif
+
+      - name: Upload to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ai-audit.sarif
+
+      - name: Post token usage
+        run: |
+          echo "## AI Audit Summary" >> $GITHUB_STEP_SUMMARY
+          cat ai-audit-tokens.txt >> $GITHUB_STEP_SUMMARY
