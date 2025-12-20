@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Report - OWASP Top 10</title>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-card: #21262d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --border: #30363d;
+            --accent: #58a6ff;
+            --success: #3fb950;
+            --danger: #f85149;
+            --warning: #d29922;
+        }
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-primary: #ffffff;
+                --bg-secondary: #f6f8fa;
+                --bg-card: #ffffff;
+                --text-primary: #1f2328;
+                --text-secondary: #656d76;
+                --border: #d0d7de;
+                --accent: #0969da;
+                --success: #1a7f37;
+                --danger: #cf222e;
+                --warning: #9a6700;
+            }
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .timestamp {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        .score-section {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .score-ring {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        .ring-container {
+            position: relative;
+            width: 140px;
+            height: 140px;
+        }
+        .ring-svg {
+            transform: rotate(-90deg);
+        }
+        .ring-bg {
+            fill: none;
+            stroke: var(--border);
+            stroke-width: 8;
+        }
+        .ring-progress {
+            fill: none;
+            stroke: var(--success);
+            stroke-width: 8;
+            stroke-linecap: round;
+            stroke-dasharray: 408;
+            stroke-dashoffset: calc(408 - (408 * {{score}}) / 100);
+            transition: stroke-dashoffset 0.5s ease;
+        }
+        .ring-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        .score-label {
+            margin-top: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+        .stat-card {
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        .stat-value.passed { color: var(--success); }
+        .stat-value.failed { color: var(--danger); }
+        .stat-value.total { color: var(--accent); }
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .checklist {
+            display: grid;
+            gap: 0.75rem;
+        }
+        .check-item {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 1rem;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            transition: border-color 0.2s;
+        }
+        .check-item:hover {
+            border-color: var(--accent);
+        }
+        .check-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .check-icon.pass {
+            background: rgba(63, 185, 80, 0.15);
+            color: var(--success);
+        }
+        .check-icon.fail {
+            background: rgba(248, 81, 73, 0.15);
+            color: var(--danger);
+        }
+        .check-content {
+            min-width: 0;
+        }
+        .check-title {
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .check-id {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 400;
+        }
+        .check-cwe {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+        .findings {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border);
+        }
+        .finding {
+            font-size: 0.875rem;
+            color: var(--danger);
+            padding: 0.25rem 0;
+            word-break: break-word;
+        }
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .badge.pass {
+            background: rgba(63, 185, 80, 0.15);
+            color: var(--success);
+        }
+        .badge.fail {
+            background: rgba(248, 81, 73, 0.15);
+            color: var(--danger);
+        }
+        @media (max-width: 768px) {
+            .score-section {
+                grid-template-columns: 1fr;
+            }
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>OWASP Top 10 Security Report</h1>
+            <span class="timestamp">{{generated}}</span>
+        </header>
+
+        <section class="score-section">
+            <div class="score-ring">
+                <div class="ring-container">
+                    <svg class="ring-svg" width="140" height="140" viewBox="0 0 140 140">
+                        <circle class="ring-bg" cx="70" cy="70" r="65"/>
+                        <circle class="ring-progress" cx="70" cy="70" r="65"/>
+                    </svg>
+                    <span class="ring-text">{{score}}%</span>
+                </div>
+                <span class="score-label">Security Score</span>
+            </div>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value passed">{{passed}}</div>
+                    <div class="stat-label">Passed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value failed">{{failed}}</div>
+                    <div class="stat-label">Failed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value total">10</div>
+                    <div class="stat-label">Total Checks</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="checklist">
+{{items}}
+        </section>
+    </div>
+</body>
+</html>

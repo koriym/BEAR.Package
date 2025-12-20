@@ -28,10 +28,12 @@ final class SecurityChecklistReport
 {
     /** @var array<string, array{name: string, cwe: string[], status: string, findings: list<string>}> */
     private array $checklist;
+    private TemplateRenderer $renderer;
 
-    public function __construct()
+    public function __construct(?TemplateRenderer $renderer = null)
     {
         $this->checklist = $this->initializeChecklist();
+        $this->renderer = $renderer ?? new TemplateRenderer();
     }
 
     /**
@@ -205,49 +207,7 @@ final class SecurityChecklistReport
         $total = count($this->checklist);
         $score = $total > 0 ? round((float) $passed / $total * 100) : 0;
 
-        $html = <<<HTML
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OWASP Top 10 Security Checklist Report</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; background: #f5f5f5; }
-        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h1 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
-        .summary { display: flex; gap: 20px; margin: 20px 0; }
-        .summary-item { padding: 15px 25px; border-radius: 8px; text-align: center; }
-        .summary-item.score { background: #e3f2fd; color: #1565c0; }
-        .summary-item.passed { background: #e8f5e9; color: #2e7d32; }
-        .summary-item.failed { background: #ffebee; color: #c62828; }
-        .summary-item strong { display: block; font-size: 24px; }
-        .checklist { margin-top: 30px; }
-        .check-item { padding: 15px; margin: 10px 0; border-radius: 6px; border-left: 4px solid; }
-        .check-item.pass { background: #e8f5e9; border-color: #4caf50; }
-        .check-item.fail { background: #ffebee; border-color: #f44336; }
-        .check-item.na { background: #f5f5f5; border-color: #9e9e9e; }
-        .check-header { display: flex; align-items: center; gap: 10px; }
-        .status-icon { font-size: 20px; }
-        .check-id { font-weight: bold; color: #555; }
-        .check-name { font-weight: 500; }
-        .cwe { font-size: 12px; color: #666; margin-top: 5px; }
-        .findings { margin-top: 10px; padding-left: 20px; font-size: 14px; color: #c62828; }
-        .finding { margin: 5px 0; }
-        .generated { color: #666; font-size: 14px; margin-top: 20px; text-align: right; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>OWASP Top 10 Security Checklist Report</h1>
-        <div class="summary">
-            <div class="summary-item score"><strong>{$score}%</strong>Score</div>
-            <div class="summary-item passed"><strong>{$passed}</strong>Passed</div>
-            <div class="summary-item failed"><strong>{$failed}</strong>Failed</div>
-        </div>
-        <div class="checklist">
-HTML;
-
+        $items = '';
         foreach ($this->checklist as $id => $item) {
             $statusClass = match ($item['status']) {
                 'PASS' => 'pass',
@@ -259,40 +219,42 @@ HTML;
                 'FAIL' => '✗',
                 default => '−',
             };
-            $cweList = implode(', ', $item['cwe']);
 
-            $html .= <<<HTML
-            <div class="check-item {$statusClass}">
-                <div class="check-header">
-                    <span class="status-icon">{$statusIcon}</span>
-                    <span class="check-id">{$id}</span>
-                    <span class="check-name">{$item['name']}</span>
-                </div>
-                <div class="cwe">CWE: {$cweList}</div>
-HTML;
-
+            $findingsHtml = '';
             if ($item['status'] === 'FAIL' && count($item['findings']) > 0) {
-                $html .= '<div class="findings">';
+                $findingsHtml = '<div class="findings">';
                 foreach ($item['findings'] as $finding) {
                     $escapedFinding = htmlspecialchars($finding, ENT_QUOTES, 'UTF-8');
-                    $html .= "<div class=\"finding\">• {$escapedFinding}</div>";
+                    $findingsHtml .= "<div class=\"finding\">• {$escapedFinding}</div>";
                 }
 
-                $html .= '</div>';
+                $findingsHtml .= '</div>';
             }
 
-            $html .= '</div>';
+            $statusLabel = match ($item['status']) {
+                'PASS' => 'Passed',
+                'FAIL' => 'Failed',
+                default => 'N/A',
+            };
+
+            $items .= $this->renderer->render('checklist-item.html', [
+                'statusClass' => $statusClass,
+                'statusIcon' => $statusIcon,
+                'statusLabel' => $statusLabel,
+                'id' => $id,
+                'name' => $item['name'],
+                'cwe' => implode(', ', $item['cwe']),
+                'findings' => $findingsHtml,
+            ]);
         }
 
-        $generated = date('Y-m-d H:i:s');
-
-        return $html . <<<HTML
-        </div>
-        <div class="generated">Generated: {$generated}</div>
-    </div>
-</body>
-</html>
-HTML;
+        return $this->renderer->render('checklist.html', [
+            'score' => (string) $score,
+            'passed' => (string) $passed,
+            'failed' => (string) $failed,
+            'items' => $items,
+            'generated' => date('Y-m-d H:i:s'),
+        ]);
     }
 
     /** @return array<string, array{name: string, cwe: string[], status: string, findings: list<string>}> */
