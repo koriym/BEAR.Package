@@ -18,7 +18,7 @@ class SecurityChecklistReportTest extends TestCase
 
         $output = $report->generate($result, 'text');
 
-        $this->assertStringContainsString('OWASP Top 10 Security Checklist Report', $output);
+        $this->assertStringContainsString('OWASP Top 10 Security Report', $output);
         $this->assertStringContainsString('[✓] PASS A01', $output);
         $this->assertStringContainsString('[✓] PASS A02', $output);
         $this->assertStringContainsString('[✓] PASS A03', $output);
@@ -81,7 +81,7 @@ class SecurityChecklistReportTest extends TestCase
         $output = $report->generate($result, 'html');
 
         $this->assertStringContainsString('<!DOCTYPE html>', $output);
-        $this->assertStringContainsString('OWASP Top 10 Security Checklist Report', $output);
+        $this->assertStringContainsString('OWASP Top 10 Security Report', $output);
         $this->assertStringContainsString('class="check-item', $output);
     }
 

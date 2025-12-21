@@ -31,7 +31,7 @@ class ScannerTest extends TestCase
     public function testScannerCreatesDefaultDetectors(): void
     {
         $detectors = $this->scanner->getDetectors();
-        $this->assertCount(10, $detectors);
+        $this->assertCount(14, $detectors);
     }
 
     public function testScanVulnerableFile(): void
@@ -235,8 +235,8 @@ class ScannerTest extends TestCase
         $this->scanner->addDetector(new SqlInjectionDetector());
         $detectors = $this->scanner->getDetectors();
 
-        // 10 default + 1 added
-        $this->assertCount(11, $detectors);
+        // 14 default + 1 added
+        $this->assertCount(15, $detectors);
     }
 
     public function testSetIncludeExtensions(): void

@@ -104,7 +104,7 @@ final class SecurityChecklistReport
     {
         $lines = [];
         $lines[] = '╔════════════════════════════════════════════════════════════════════════╗';
-        $lines[] = '║              OWASP Top 10 Security Checklist Report                    ║';
+        $lines[] = '║                   OWASP Top 10 Security Report                         ║';
         $lines[] = '╠════════════════════════════════════════════════════════════════════════╣';
         $lines[] = sprintf('║  Generated: %s                                       ║', date('Y-m-d H:i:s'));
         $lines[] = '╚════════════════════════════════════════════════════════════════════════╝';
