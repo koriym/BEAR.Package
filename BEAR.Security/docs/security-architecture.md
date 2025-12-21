@@ -252,6 +252,17 @@ WordPress imposes almost no structure. Slim provides routing but no opinions on 
 
 Moving right on this spectrum, it becomes progressively harder to write insecure code. BEAR.Sunday occupies the far right because it trades flexibility for security guarantees.
 
+### Summary
+
+| Aspect | WordPress | Laravel | Symfony | BEAR.Sunday |
+|--------|-----------|---------|---------|-------------|
+| Input handling | `$_GET` | `$request->all()` | `Request $request` | `int $id` |
+| Output | `echo` | `Response` | `Response` | `ResourceObject` |
+| Dependencies | Global | Facades | DI | Pure DI |
+| Escaping | Manual | Auto + bypass | Auto + bypass | Explicit |
+| Taint analysis | Impossible | Difficult | Difficult | Native |
+| Security audit | Hard | Medium | Medium | Easy |
+
 ---
 
 ## BEAR.Security Integration
@@ -275,5 +286,11 @@ This combination provides enterprise-grade security without enterprise costs.
 BEAR.Sunday's security advantage is not about having more security features. Laravel and Symfony have plenty of security features. The advantage is architectural: BEAR.Sunday makes insecure code difficult to write in the first place.
 
 Traditional security relies on developer discipline—use the safe functions, remember to escape, configure the protections correctly. BEAR.Sunday relies on structural constraints—unsafe patterns simply do not fit the architecture.
+
+The three pillars of BEAR.Sunday security:
+
+1. **Typed input, structured output** — boundaries are enforced
+2. **Everything explicit** — pure DI, explicit escaping, no hidden magic
+3. **Types prove safety** — PHPStan/Psalm max level enables reliable taint analysis
 
 Security is not bolted on. It is built in.
