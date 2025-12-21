@@ -8,7 +8,7 @@ Security scanner for BEAR.Sunday applications with OWASP Top 10 compliance.
 
 - **SAST** - Static Application Security Testing (14 detectors)
 - **DAST** - Dynamic Application Security Testing
-- **AI Auditor** - Claude API連携による高度な分析
+- **AI Auditor** - Context-aware analysis via Claude API
 - **OWASP Top 10** - 100% coverage for BEAR.Sunday applications
 - **Multiple Output Formats** - Console, JSON, SARIF, HTML
 - **GitHub Security Integration** - SARIF output for Security tab
@@ -90,15 +90,15 @@ vendor/bin/bear.security-scan src --exclude='/vendor/' --exclude='/tests/'
 
 ### AI Auditor (Context-Aware)
 
-SASTでは検出困難な脆弱性をAIが検出：
+Detects vulnerabilities that require context understanding:
 
-| 脆弱性 | CWE | 説明 |
-|--------|-----|------|
-| IDOR | CWE-639 | 認可バイパス |
-| Mass Assignment | CWE-915 | 権限昇格 |
+| Vulnerability | CWE | Description |
+|---------------|-----|-------------|
+| IDOR | CWE-639 | Authorization bypass |
+| Mass Assignment | CWE-915 | Privilege escalation |
 | Race Condition | CWE-367 | TOCTOU |
-| Timing Attack | CWE-208 | サイドチャネル |
-| Business Logic | CWE-840 | ロジック欠陥 |
+| Timing Attack | CWE-208 | Side-channel |
+| Business Logic | CWE-840 | Logic flaws |
 
 ```bash
 # AI Audit (requires ANTHROPIC_API_KEY)
@@ -228,7 +228,7 @@ vendor/bin/psalm --taint-analysis
 
 ## Documentation
 
-- [Detection Matrix](docs/detection-matrix.md) - 検出対応表
+- [Detection Matrix](docs/detection-matrix.md) - Detection coverage
 - [GitHub Actions Integration](docs/github-actions.md)
 - [Comparison with VADDY](docs/comparison-vaddy.md)
 - [LLM Context](docs/llms.txt) | [Full](docs/llms-full.txt)
