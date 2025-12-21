@@ -258,7 +258,7 @@ Moving right on this spectrum, it becomes progressively harder to write insecure
 |--------|-----------|---------|---------|-------------|
 | Input handling | `$_GET` | `$request->all()` | `Request $request` | `int $id` |
 | Output | `echo` | `Response` | `Response` | `ResourceObject` |
-| Dependencies | Global | Facades | DI | Pure DI |
+| Dependencies | Global | "Facades" | DI | Pure DI |
 | Escaping | Manual | Auto + bypass | Auto + bypass | Explicit |
 | Taint analysis | Impossible | Difficult | Difficult | Native |
 | Security audit | Hard | Medium | Medium | Easy |
