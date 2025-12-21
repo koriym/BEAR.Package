@@ -1,404 +1,168 @@
 # Security through Architecture
 
-BEAR.Sunday provides security through architectural constraints, not just security tools.
+BEAR.Sunday does not merely provide security tools. It enforces security through architectural constraints.
 
-## Philosophy
-
-| Approach | Description |
-|----------|-------------|
-| **Traditional** | "Provide tools" → Safe if used correctly |
-| **BEAR.Sunday** | "Enforce constraints" → Unsafe patterns are impossible |
+Traditional frameworks offer developers safe methods and hope they will be used correctly. BEAR.Sunday takes a different approach: it makes unsafe patterns structurally impossible to write.
 
 ---
 
-## Four Pillars
+## The Four Pillars
 
 ### 1. Taint-Aware Architecture
 
-BEAR.Sunday's type-enforced input handling integrates naturally with taint analysis.
+Every input in BEAR.Sunday passes through a typed resource boundary. When a request arrives, parameters are automatically cast to their declared types before reaching application code.
 
 ```php
-// Input is type-enforced at the resource boundary
 public function onGet(int $id, string $name): static
 {
-    // $id is guaranteed to be integer (sanitized)
-    // $name is typed but may still be tainted for output
+    // $id is guaranteed to be an integer
+    // No SQL injection possible through numeric ID
 }
 ```
 
-**Psalm Taint Analysis Integration:**
+This type enforcement integrates naturally with Psalm's taint analysis. Psalm can track data flow from input to output, catching injection vulnerabilities at compile time rather than runtime.
 
-```bash
-vendor/bin/psalm --taint-analysis
-```
+### 2. Value and Representation Separation
 
-Psalm can track tainted data from resource input through to output, catching injection vulnerabilities at compile time.
-
-### 2. Value / Representation Separation
-
-Resources return **values only**. Representation (HTML, JSON) is handled by a separate Renderer layer.
-
-```
-Resource (Value)          Renderer (Representation)
-      │                          │
-      ▼                          ▼
-$this->body = $data;  →   Renderer converts to HTML/JSON
-      │                          │
-      └── Security boundary ─────┘
-```
-
-**Why this matters:**
+A BEAR.Sunday resource cannot return HTML. It can only return values. The transformation of values into HTML, JSON, or any other format happens in a separate Renderer layer that the resource has no control over.
 
 ```php
-// BEAR.Sunday: Cannot return HTML from resource
 public function onGet(): static
 {
     $this->body = ['name' => $userInput];  // Value only
     return $this;
 }
-// Renderer handles escaping
-
-// Other frameworks: Controller can return raw HTML
-return new Response("<div>{$userInput}</div>");  // XSS possible
 ```
 
-The architectural separation makes XSS vulnerabilities structurally difficult.
+The Renderer then handles escaping according to the output format. This architectural boundary makes XSS vulnerabilities structurally difficult. A developer cannot accidentally echo raw HTML because there is nowhere in a resource to echo anything.
 
 ### 3. Explicit over Implicit
 
-#### Qiq: Explicit Escaping
-
-Unlike Twig's automatic escaping, Qiq requires explicit context-aware escaping:
+BEAR.Sunday uses Qiq for templating, which requires explicit escaping for every output. Unlike Twig or Blade where auto-escaping happens silently, Qiq forces developers to consciously choose their escape context.
 
 ```php
-// Twig: Implicit (auto-escape, easy to forget context)
-{{ user.name }}              // Auto-escaped
-{{ user.bio | raw }}         // Bypass available
-
-// Qiq: Explicit (must choose escape context)
-{{h $user->name }}           // h = HTML escape
-{{u $url }}                  // u = URL escape
-{{j $data }}                 // j = JavaScript escape
+{{h $userName }}   // HTML context
+{{u $redirectUrl }} // URL context
+{{j $jsonData }}   // JavaScript context
 ```
 
-**Security benefit:** Developers must consciously consider the output context every time.
-
-#### DI: Explicit Dependencies
-
-All dependencies are visible in constructors:
-
-```php
-public function __construct(
-    private UserRepository $repo,
-    private Logger $logger,
-    private AuthService $auth
-) {}
-// Every dependency is auditable
-```
-
-No hidden service location. No facades. No magic.
+This explicitness extends to dependency injection. Every dependency appears in the constructor. There are no facades, no service locators, no magic methods hiding what a class actually uses. When you read a BEAR.Sunday class, you see everything it depends on.
 
 ### 4. AI-Friendly Architecture
 
-BEAR.Sunday's uniform, explicit structure enables more effective AI-powered security analysis.
-
-**Why AI understands BEAR.Sunday better:**
-
-| Aspect | BEAR.Sunday | Traditional Frameworks |
-|--------|-------------|----------------------|
-| Structure | Uniform ResourceObject | Various patterns |
-| Hidden behavior | None (explicit DI) | Facades, Magic Methods |
-| Input/Output | Typed args → $body | Various patterns |
-| Dependencies | All in constructor | Service locator, etc. |
-
-**Example:**
-
-```php
-// BEAR.Sunday: AI reads this and understands everything
-class User extends ResourceObject
-{
-    public function __construct(
-        private UserRepository $repo  // Dependency visible
-    ) {}
-
-    public function onGet(int $id): static  // Input clear
-    {
-        $this->body = $this->repo->find($id);  // Output clear
-        return $this;
-    }
-}
-
-// Laravel: AI must trace through layers
-class UserController extends Controller
-{
-    public function show($id)  // No type
-    {
-        $user = User::find($id);  // Eloquent magic
-        return view('user', compact('user'));  // What's passed?
-    }
-}
-```
-
-**Result:** AI security analysis is more accurate with less false positives on BEAR.Sunday code.
+Because BEAR.Sunday code follows a uniform structure with no hidden behaviors, AI security analysis becomes significantly more effective. The AI can read a resource class and understand exactly what it does—there are no layers of abstraction to trace through, no magic to decode.
 
 ---
 
-## Framework Comparison
+## Framework Comparisons
 
-| Aspect | BEAR.Sunday | Laravel | Symfony | WordPress |
-|--------|-------------|---------|---------|-----------|
-| **Taint Tracking** | Psalm + type-enforced | Partial | Partial | None |
-| **Value/Representation** | Separated (enforced) | Mixed | Mixed | Mixed |
-| **Escaping** | Explicit (Qiq) | Implicit (Blade) | Implicit (Twig) | Manual |
-| **Global State** | None | Minimal | Minimal | Everywhere |
-| **AI Comprehension** | High | Medium | Medium-High | Low |
+### WordPress: The Opposite Extreme
 
----
-
-## vs WordPress
-
-WordPress represents the opposite end of the spectrum: maximum freedom, minimum constraints.
-
-### Global State
+WordPress represents maximum developer freedom. Any function can access global state. Any code can echo directly to the browser. There are no architectural constraints whatsoever.
 
 ```php
-// WordPress: Global state everywhere
 function get_user_data() {
     global $wpdb, $current_user;
-    $id = $_GET['id'];  // Direct superglobal access
-    return $wpdb->get_row("SELECT * FROM users WHERE id = $id");  // SQL injection
-}
-
-// BEAR.Sunday: No global state possible
-class User extends ResourceObject
-{
-    public function __construct(
-        private QueryInterface $query  // Injected, testable
-    ) {}
-
-    public function onGet(int $id): static  // Type-enforced, no injection
-    {
-        $this->body = $this->query->find($id);
-        return $this;
-    }
+    $id = $_GET['id'];
+    return $wpdb->get_row("SELECT * FROM users WHERE id = $id");
 }
 ```
 
-### Escaping
+This code has a SQL injection vulnerability that is immediately obvious. Yet WordPress allows it because WordPress trusts developers. The same logic in BEAR.Sunday would not compile—`$_GET['id']` cannot reach application code untyped, and concatenating variables into SQL requires explicit decisions that Psalm's taint analysis would flag.
+
+WordPress provides escape functions like `esc_html()`, but developers must remember to use them every time. BEAR.Sunday's renderer boundary means there is no "every time"—escaping happens once, automatically, at the architectural layer.
+
+The philosophies differ fundamentally. WordPress says "trust the developer." BEAR.Sunday says "constrain the developer."
+
+### Laravel: The Convenience Trade-off
+
+Laravel provides excellent security features. It has CSRF protection, authentication systems, input validation, and automatic output escaping in Blade templates. The problem is that all of these can be bypassed.
+
+Consider this typical Laravel controller:
 
 ```php
-// WordPress: Must remember to escape, easy to forget
-echo '<div>' . $user_input . '</div>';           // XSS
-echo '<div>' . esc_html($user_input) . '</div>'; // Safe, but manual
-
-// BEAR.Sunday + Qiq: Must explicitly choose
-{{h $userInput }}  // Cannot output without choosing escape method
-```
-
-### Security Implications
-
-| Aspect | WordPress | BEAR.Sunday |
-|--------|-----------|-------------|
-| SQL Injection | Very common | Structurally prevented |
-| XSS | Common (manual escape) | Renderer boundary + explicit escape |
-| Dependency audit | Difficult (globals) | Easy (constructor) |
-| AI analysis | Nearly impossible | Straightforward |
-
-**WordPress philosophy:** "Trust the developer"
-**BEAR.Sunday philosophy:** "Constrain the developer"
-
----
-
-## vs Laravel
-
-Laravel provides excellent security tools, but allows bypassing them.
-
-### Hidden Dependencies
-
-```php
-// Laravel: Facades hide what's happening
 class UserController extends Controller
 {
     public function store(Request $request)
     {
-        $user = User::create($request->all());  // Mass assignment risk
-        Cache::put('user', $user);              // Where does Cache come from?
-        Log::info('User created');              // Where does Log come from?
+        $user = User::create($request->all());
+        Cache::put('user', $user);
+        Log::info('User created');
         return view('user.show', compact('user'));
     }
 }
-
-// BEAR.Sunday: Everything is visible
-class User extends ResourceObject
-{
-    public function __construct(
-        private UserRepository $repo,
-        private CacheInterface $cache,  // Visible
-        private LoggerInterface $log    // Visible
-    ) {}
-
-    public function onPost(
-        #[Valid] UserInput $input  // Validated, typed
-    ): static {
-        $this->body = $this->repo->create($input);
-        return $this;
-    }
-}
 ```
 
-### Escaping Bypass
+Several security concerns hide in this innocent-looking code. Where do `Cache` and `Log` come from? They are facades—static calls that hide the actual dependencies. For security auditing, you cannot look at this class and know what it touches. You must understand Laravel's service container to trace the actual implementations.
+
+The `$request->all()` call passes every submitted field to `User::create()`. If the developer forgot to define `$fillable` on the User model, this is a mass assignment vulnerability. An attacker could submit `is_admin=true` and escalate privileges.
+
+In Blade templates, `{{ $var }}` auto-escapes but `{!! $var !!}` outputs raw HTML. The bypass is easy and tempting.
+
+BEAR.Sunday makes different trade-offs. There are no facades—every dependency is visible in the constructor. There is no mass assignment—input binding is explicit. There is no raw output shortcut—Qiq's `{{= }}` syntax makes raw output intentional rather than convenient.
+
+Laravel's philosophy is "provide safe defaults with escape hatches." BEAR.Sunday's philosophy is "no escape hatches."
+
+### Symfony: Almost There
+
+Symfony comes closest to BEAR.Sunday's explicitness. It uses proper dependency injection. It encourages typed parameters. Its security component is mature and well-designed.
+
+The key difference is in representation handling. A Symfony controller returns a Response object:
 
 ```php
-// Laravel Blade: Easy to bypass auto-escaping
-{{ $safe }}           // Escaped
-{!! $dangerous !!}    // Raw output - XSS if misused
-
-// Qiq: No "raw" shortcut, must be intentional
-{{h $safe }}          // HTML escaped
-{{= $raw }}           // Raw, but "=" makes intent clear
-```
-
-### Mass Assignment
-
-```php
-// Laravel: $fillable/$guarded can be forgotten
-class User extends Model
-{
-    // If $fillable is missing, all fields are assignable
-    // $request->all() can include 'is_admin' => true
-}
-
-// BEAR.Sunday: No ORM magic, explicit mapping required
-public function onPost(UserInput $input): static
-{
-    // Only properties defined in UserInput are accepted
-}
-```
-
-### Security Implications
-
-| Aspect | Laravel | BEAR.Sunday |
-|--------|---------|-------------|
-| Dependency visibility | Hidden (Facades) | Explicit (DI) |
-| Mass assignment | Possible if misconfigured | Impossible (no magic) |
-| Escape bypass | Easy (`{!! !!}`) | Intentional only |
-| Testing | Requires mocking facades | Natural (DI) |
-
-**Laravel philosophy:** "Provide safe defaults, allow escape hatches"
-**BEAR.Sunday philosophy:** "No escape hatches by design"
-
----
-
-## vs Symfony
-
-Symfony is the closest to BEAR.Sunday in explicitness, but differs in representation handling.
-
-### Representation Boundary
-
-```php
-// Symfony: Controller returns Response (HTML/JSON)
 class UserController extends AbstractController
 {
-    #[Route('/user/{id}')]
     public function show(int $id): Response
     {
         $user = $this->userRepository->find($id);
-
-        // Option 1: Twig (safe, but controller chooses representation)
         return $this->render('user/show.html.twig', ['user' => $user]);
-
-        // Option 2: Direct Response (XSS possible)
-        return new Response("<h1>{$user->getName()}</h1>");
-    }
-}
-
-// BEAR.Sunday: Resource returns value only
-class User extends ResourceObject
-{
-    public function onGet(int $id): static
-    {
-        $this->body = $this->repo->find($id);
-        return $this;
-        // Representation is NEVER chosen here
-        // Renderer handles HTML/JSON/XML based on content negotiation
     }
 }
 ```
 
-### Content Negotiation
+The controller chooses both the data and its representation. It could just as easily return raw HTML:
 
 ```php
-// Symfony: Must implement manually or use FOSRestBundle
-#[Route('/api/user/{id}')]
-public function show(int $id): Response
-{
-    $user = $this->repo->find($id);
-    if ($request->getPreferredFormat() === 'json') {
-        return $this->json($user);
-    }
-    return $this->render('user.html.twig', ['user' => $user]);
-}
-
-// BEAR.Sunday: Built-in, automatic
-// Same resource serves HTML, JSON, XML based on Accept header
-// Security is consistent across all representations
+return new Response("<h1>{$user->getName()}</h1>");
 ```
 
-### Security Implications
+This is perfectly valid Symfony code. The framework allows it. A BEAR.Sunday resource cannot make this choice—it returns values only, and the renderer layer handles representation separately.
 
-| Aspect | Symfony | BEAR.Sunday |
-|--------|---------|-------------|
-| Value/Representation | Convention (can mix) | Enforced (cannot mix) |
-| Content negotiation | Manual/Bundle | Built-in |
-| Escape bypass | Possible (raw Response) | Impossible |
-| Security consistency | Per-representation | Architectural |
+Symfony's Twig templates auto-escape by default, but `{{ var|raw }}` bypasses this. The escape hatch exists because Symfony prioritizes flexibility.
 
-**Symfony philosophy:** "Explicit configuration, flexible output"
-**BEAR.Sunday philosophy:** "Explicit configuration, constrained output"
+For content negotiation, Symfony requires manual implementation or additional bundles. BEAR.Sunday provides it architecturally—the same resource automatically serves HTML, JSON, or XML based on the Accept header, with security consistent across all formats.
+
+Symfony's philosophy is "explicit configuration with flexible output." BEAR.Sunday's philosophy is "explicit configuration with constrained output."
 
 ---
 
-## Summary: The Constraint Spectrum
+## The Constraint Spectrum
+
+These frameworks exist on a spectrum from maximum freedom to maximum constraint:
 
 ```
-← More Freedom                              More Constraints →
+← Freedom                                    Constraint →
 
 WordPress    Slim    Laravel    Symfony    BEAR.Sunday
-    │         │         │          │            │
-    ▼         ▼         ▼          ▼            ▼
- Globals   No rules  Facades   Explicit    Enforced
- No types  Freedom   Magic     DI          Boundaries
- Manual    Manual    Auto      Auto        Explicit
- escape    escape    escape    escape      escape
 ```
 
-The further right, the harder it is to write insecure code.
+WordPress imposes almost no structure. Slim provides routing but no opinions on architecture. Laravel provides convenience with optional constraints. Symfony provides explicit structure with flexible output. BEAR.Sunday enforces constraints at every layer.
 
-BEAR.Sunday trades flexibility for security guarantees.
+Moving right on this spectrum, it becomes progressively harder to write insecure code. BEAR.Sunday occupies the far right because it trades flexibility for security guarantees.
 
 ---
 
 ## BEAR.Security Integration
 
-BEAR.Sunday's architecture combined with BEAR.Security provides multi-layer defense:
+BEAR.Sunday's architecture creates a foundation for multi-layer security:
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Security Layers                       │
-├─────────────────────────────────────────────────────────┤
-│  Layer 1: Architecture    │ Constraints prevent unsafe  │
-│                           │ patterns at design level    │
-├───────────────────────────┼─────────────────────────────┤
-│  Layer 2: Psalm Taint     │ Data flow analysis at       │
-│                           │ compile time                │
-├───────────────────────────┼─────────────────────────────┤
-│  Layer 3: BEAR.Security   │ 14 SAST detectors for       │
-│           SAST            │ pattern-based detection     │
-├───────────────────────────┼─────────────────────────────┤
-│  Layer 4: BEAR.Security   │ Context-aware analysis      │
-│           AI Auditor      │ for business logic flaws    │
-└───────────────────────────┴─────────────────────────────┘
-```
+**Layer 1: Architecture** prevents unsafe patterns at design time. You cannot write XSS-vulnerable code because you cannot write HTML from a resource.
+
+**Layer 2: Psalm Taint Analysis** tracks data flow at compile time. Tainted input that reaches dangerous functions triggers errors before deployment.
+
+**Layer 3: BEAR.Security SAST** scans for 14 vulnerability patterns. It catches what architecture and static analysis might miss.
+
+**Layer 4: BEAR.Security AI Auditor** performs context-aware analysis. It understands business logic and identifies vulnerabilities that pattern matching cannot detect.
 
 This combination provides enterprise-grade security without enterprise costs.
 
@@ -406,13 +170,8 @@ This combination provides enterprise-grade security without enterprise costs.
 
 ## Conclusion
 
-BEAR.Sunday's security advantage is not about having more security features—it's about having an architecture where **insecure code is difficult to write**.
+BEAR.Sunday's security advantage is not about having more security features. Laravel and Symfony have plenty of security features. The advantage is architectural: BEAR.Sunday makes insecure code difficult to write in the first place.
 
-| Traditional Approach | BEAR.Sunday Approach |
-|---------------------|---------------------|
-| Add security tools | Design secure architecture |
-| Train developers | Constrain possibilities |
-| Review for mistakes | Prevent mistakes structurally |
-| Hope for compliance | Enforce by design |
+Traditional security relies on developer discipline—use the safe functions, remember to escape, configure the protections correctly. BEAR.Sunday relies on structural constraints—unsafe patterns simply do not fit the architecture.
 
-Security is not bolted on. It's built in.
+Security is not bolted on. It is built in.
