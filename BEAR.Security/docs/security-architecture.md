@@ -92,6 +92,15 @@ class User extends ResourceObject
 
 There are no facades, no service locators, no static calls to global containers. When you read a class, you see everything it uses. Security audits can trace dependencies without understanding framework internals.
 
+This explicitness enables complete dependency visualization with [Ray.ObjectGrapher](https://github.com/ray-di/Ray.ObjectGrapher):
+
+```php
+$dot = (new ObjectGrapher)(new AppModule);
+// Generates a GraphViz visualization of ALL dependencies
+```
+
+The entire application's dependency graph can be rendered as a diagram. Hidden dependencies cannot exist—if something is used, it appears in the graph. For security auditors, this provides verifiable proof that the application has no hidden service locations or undeclared dependencies.
+
 ---
 
 ## Why These Differences Matter for Security
