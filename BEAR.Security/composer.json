@@ -70,7 +70,12 @@
             "@crc",
             "@metrics"
         ],
-        "security-scan": "bin/bear.security-scan",
+        "security-scan": "bin/bear.security-scan src",
+        "security-audit": "bin/bear-security-audit src",
+        "security": [
+            "@security-scan",
+            "@security-audit"
+        ],
         "post-install-cmd": "@composer bin all install --ansi",
         "post-update-cmd": "@composer bin all update --ansi"
     },
@@ -92,7 +97,9 @@
         "crc": "Run composer require checker",
         "tests": "Run tests and quality checks",
         "build": "Build project",
-        "security-scan": "Run security scanner on src directory"
+        "security-scan": "Run SAST security scanner",
+        "security-audit": "Run AI security audit (requires ANTHROPIC_API_KEY)",
+        "security": "Run all security checks (SAST + AI)"
     },
     "config": {
         "allow-plugins": {
