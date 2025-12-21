@@ -6,39 +6,103 @@ Traditional frameworks offer developers safe methods and hope they will be used 
 
 ---
 
-## The Four Pillars
+## Decisive Architectural Differences
 
-### 1. Taint-Aware Architecture
+### Input: Type Enforcement vs Request Object
 
-Every input in BEAR.Sunday passes through a typed resource boundary. When a request arrives, parameters are automatically cast to their declared types before reaching application code.
+The difference begins at input handling. In most frameworks, input arrives through a request object:
 
 ```php
-public function onGet(int $id, string $name): static
+// Laravel, Symfony, etc.
+public function show(Request $request)
 {
-    // $id is guaranteed to be an integer
-    // No SQL injection possible through numeric ID
+    $id = $request->get('id');  // Returns mixed - could be anything
+    $id = $request->input('id'); // Same problem
 }
 ```
 
-This type enforcement integrates naturally with Psalm's taint analysis. Psalm can track data flow from input to output, catching injection vulnerabilities at compile time rather than runtime.
-
-### 2. Value and Representation Separation
-
-A BEAR.Sunday resource cannot return HTML. It can only return values. The transformation of values into HTML, JSON, or any other format happens in a separate Renderer layer that the resource has no control over.
+The developer receives a value of unknown type and must validate it manually. In BEAR.Sunday, input is declared as typed method parameters:
 
 ```php
+// BEAR.Sunday
+public function onGet(int $id): static
+{
+    // $id is already an integer. Not a string, not null, not an array.
+    // Type enforcement happened before this code runs.
+}
+```
+
+This is not merely convenient—it eliminates entire vulnerability classes. SQL injection through numeric IDs becomes structurally impossible because non-numeric input never reaches the application code.
+
+### Output: ResourceObject vs Arbitrary Response
+
+In traditional frameworks, a controller can return anything:
+
+```php
+// Symfony
+return new Response("<h1>$name</h1>");  // String
+return $this->json($data);              // JSON
+return $this->render('template.twig');  // HTML
+return new BinaryFileResponse($path);   // File
+```
+
+The controller decides both what data to return and how to represent it. BEAR.Sunday separates these concerns:
+
+```php
+// BEAR.Sunday
 public function onGet(): static
 {
-    $this->body = ['name' => $userInput];  // Value only
-    return $this;
+    $this->body = ['name' => $name];  // Always structured data
+    return $this;                      // Always ResourceObject
 }
 ```
 
-The Renderer then handles escaping according to the output format. This architectural boundary makes XSS vulnerabilities structurally difficult. A developer cannot accidentally echo raw HTML because there is nowhere in a resource to echo anything.
+A resource returns a ResourceObject with structured data in `$body`. How that data becomes HTML or JSON is decided elsewhere by the Renderer. The resource cannot output a raw string—there is no method for it.
 
-### 3. Explicit over Implicit
+### Schema: Optional vs Enforced
 
-BEAR.Sunday uses Qiq for templating, which requires explicit escaping for every output. Unlike Twig or Blade where auto-escaping happens silently, Qiq forces developers to consciously choose their escape context.
+BEAR.Sunday can enforce input/output schemas using JsonSchema:
+
+```php
+#[JsonSchema('user.json')]
+public function onGet(int $id): static
+{
+    $this->body = $this->repo->find($id);
+    return $this;
+    // Output is validated against schema before rendering
+}
+```
+
+The schema defines what the resource accepts and returns. Invalid data triggers errors before reaching clients.
+
+### Dependencies: Pure DI vs Service Location
+
+Every dependency in BEAR.Sunday is injected through the constructor:
+
+```php
+class User extends ResourceObject
+{
+    public function __construct(
+        private UserRepository $repo,
+        private LoggerInterface $logger,
+        private CacheInterface $cache
+    ) {}
+}
+```
+
+There are no facades, no service locators, no static calls to global containers. When you read a class, you see everything it uses. Security audits can trace dependencies without understanding framework internals.
+
+---
+
+## Why These Differences Matter for Security
+
+### Taint Tracking
+
+With typed parameters and structured output, Psalm's taint analysis works seamlessly. It can trace data from `int $id` through to `$this->body` and verify that tainted data never reaches dangerous functions.
+
+### Escaping
+
+BEAR.Sunday uses Qiq for templating, which requires explicit escaping context:
 
 ```php
 {{h $userName }}   // HTML context
@@ -46,11 +110,11 @@ BEAR.Sunday uses Qiq for templating, which requires explicit escaping for every 
 {{j $jsonData }}   // JavaScript context
 ```
 
-This explicitness extends to dependency injection. Every dependency appears in the constructor. There are no facades, no service locators, no magic methods hiding what a class actually uses. When you read a BEAR.Sunday class, you see everything it depends on.
+Unlike Twig or Blade where auto-escaping happens silently (and can be bypassed easily), Qiq forces conscious decisions about output context.
 
-### 4. AI-Friendly Architecture
+### AI Comprehension
 
-Because BEAR.Sunday code follows a uniform structure with no hidden behaviors, AI security analysis becomes significantly more effective. The AI can read a resource class and understand exactly what it does—there are no layers of abstraction to trace through, no magic to decode.
+Because BEAR.Sunday code follows uniform patterns with no hidden behaviors, AI security analysis becomes significantly more effective. The AI reads a resource class and understands exactly what it does—there are no layers of abstraction to trace through, no magic to decode.
 
 ---
 
