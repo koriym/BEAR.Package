@@ -6,14 +6,14 @@ Security scanner for BEAR.Sunday applications with OWASP Top 10 compliance.
 
 ## Features
 
-- **SAST** - Static Application Security Testing (10 detectors)
+- **SAST** - Static Application Security Testing (14 detectors)
 - **DAST** - Dynamic Application Security Testing
+- **AI Auditor** - Claude API連携による高度な分析
 - **OWASP Top 10** - 100% coverage for BEAR.Sunday applications
 - **Multiple Output Formats** - Console, JSON, SARIF, HTML
 - **GitHub Security Integration** - SARIF output for Security tab
-- **Psalm Taint Analysis** - Data flow tracking enabled
 
-See also: [Comparison with VADDY](docs/comparison-vaddy.md)
+See also: [Detection Matrix](docs/detection-matrix.md) | [Comparison with VADDY](docs/comparison-vaddy.md)
 
 ## Installation
 
@@ -69,20 +69,41 @@ vendor/bin/bear.security-scan src --exclude='/vendor/' --exclude='/tests/'
 
 ## Detectors
 
-### SAST (Static Analysis)
+### SAST (14 Detectors)
 
-| Detector | Severity | Description |
-|----------|----------|-------------|
-| SQL Injection | CRITICAL | Detects SQL injection vulnerabilities |
-| XSS | HIGH | Cross-site scripting detection |
-| Command Injection | CRITICAL | Shell command injection |
-| Path Traversal | HIGH | Directory traversal attacks |
-| Remote File Inclusion | CRITICAL | RFI/SSRF vulnerabilities |
-| CSRF | MEDIUM | Cross-site request forgery |
-| Cryptographic Failures | HIGH | Weak hashing, hardcoded secrets |
-| Insecure Deserialization | CRITICAL | Unsafe unserialize() usage |
-| Dangerous Functions | HIGH | eval(), exec(), system() |
-| Session Security | MEDIUM | Session fixation, insecure cookies |
+| Detector | CWE | Severity | Description |
+|----------|-----|----------|-------------|
+| SqlInjection | CWE-89 | CRITICAL | SQL injection vulnerabilities |
+| XSS | CWE-79 | HIGH | Cross-site scripting |
+| CommandInjection | CWE-78 | CRITICAL | Shell command injection |
+| PathTraversal | CWE-22 | HIGH | Directory traversal attacks |
+| RemoteFileInclusion | CWE-918 | CRITICAL | RFI/SSRF vulnerabilities |
+| CSRF | CWE-352 | MEDIUM | Cross-site request forgery |
+| CryptographicFailures | CWE-327 | HIGH | Weak hash, hardcoded secrets |
+| InsecureDeserialization | CWE-502 | CRITICAL | Unsafe unserialize() |
+| DangerousFunctions | CWE-94 | HIGH | eval(), exec(), system() |
+| SessionSecurity | CWE-384 | MEDIUM | Session fixation |
+| OpenRedirect | CWE-601 | HIGH | Unvalidated redirects |
+| XXE | CWE-611 | HIGH | XML External Entity |
+| HeaderInjection | CWE-113 | HIGH | HTTP header injection |
+| WeakRandom | CWE-330 | MEDIUM | Insecure random generation |
+
+### AI Auditor (Context-Aware)
+
+SASTでは検出困難な脆弱性をAIが検出：
+
+| 脆弱性 | CWE | 説明 |
+|--------|-----|------|
+| IDOR | CWE-639 | 認可バイパス |
+| Mass Assignment | CWE-915 | 権限昇格 |
+| Race Condition | CWE-367 | TOCTOU |
+| Timing Attack | CWE-208 | サイドチャネル |
+| Business Logic | CWE-840 | ロジック欠陥 |
+
+```bash
+# AI Audit (requires ANTHROPIC_API_KEY)
+ANTHROPIC_API_KEY=sk-xxx vendor/bin/bear-security-audit src
+```
 
 ### DAST (Dynamic Analysis)
 
@@ -207,6 +228,7 @@ vendor/bin/psalm --taint-analysis
 
 ## Documentation
 
+- [Detection Matrix](docs/detection-matrix.md) - 検出対応表
 - [GitHub Actions Integration](docs/github-actions.md)
 - [Comparison with VADDY](docs/comparison-vaddy.md)
 - [LLM Context](docs/llms.txt) | [Full](docs/llms-full.txt)
