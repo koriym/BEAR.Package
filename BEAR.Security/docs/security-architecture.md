@@ -101,6 +101,8 @@ $dot = (new ObjectGrapher)(new AppModule);
 
 The entire application's dependency graph can be rendered as a diagram. Hidden dependencies cannot exist—if something is used, it appears in the graph. For security auditors, this provides verifiable proof that the application has no hidden service locations or undeclared dependencies.
 
+BEAR.Sunday also logs which interceptors are applied to each ResourceObject. Security auditors can verify that authentication and authorization interceptors are correctly applied to protected resources, and identify any resources that may be missing required security checks.
+
 ---
 
 ## Why These Differences Matter for Security
