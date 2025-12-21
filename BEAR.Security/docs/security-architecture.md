@@ -145,39 +145,236 @@ class UserController extends Controller
 
 ## Framework Comparison
 
-| Aspect | BEAR.Sunday | Laravel | Symfony | Slim |
-|--------|-------------|---------|---------|------|
-| **Taint Tracking** | Psalm integration, type-enforced | Partial | Partial | None |
-| **Value/Representation Separation** | Enforced (ResourceObject) | Convention | Convention | None |
+| Aspect | BEAR.Sunday | Laravel | Symfony | WordPress |
+|--------|-------------|---------|---------|-----------|
+| **Taint Tracking** | Psalm + type-enforced | Partial | Partial | None |
+| **Value/Representation** | Separated (enforced) | Mixed | Mixed | Mixed |
 | **Escaping** | Explicit (Qiq) | Implicit (Blade) | Implicit (Twig) | Manual |
-| **AI Comprehension** | High (uniform structure) | Medium (magic) | Medium-High | Low (no structure) |
-| **Unsafe Code** | Difficult to write | Possible | Possible | Easy |
+| **Global State** | None | Minimal | Minimal | Everywhere |
+| **AI Comprehension** | High | Medium | Medium-High | Low |
 
-### Detailed Comparison
+---
 
-#### Laravel
+## vs WordPress
 
-- **Strengths:** Rich security features (CSRF, auth, validation)
-- **Weakness:** Facades hide dependencies, Eloquent magic, `{!! !!}` bypass
-- **Philosophy:** "Provide safe tools" - developer discipline required
+WordPress represents the opposite end of the spectrum: maximum freedom, minimum constraints.
 
-#### Symfony
+### Global State
 
-- **Strengths:** Explicit DI, Security Voters, mature ecosystem
-- **Weakness:** Controller returns Response directly, Twig auto-escape bypass
-- **Philosophy:** "Explicit configuration" - but representation not separated
+```php
+// WordPress: Global state everywhere
+function get_user_data() {
+    global $wpdb, $current_user;
+    $id = $_GET['id'];  // Direct superglobal access
+    return $wpdb->get_row("SELECT * FROM users WHERE id = $id");  // SQL injection
+}
 
-#### Slim
+// BEAR.Sunday: No global state possible
+class User extends ResourceObject
+{
+    public function __construct(
+        private QueryInterface $query  // Injected, testable
+    ) {}
 
-- **Strengths:** Minimal, PSR-15 compliant
-- **Weakness:** No structure enforced, each project different, no conventions
-- **Philosophy:** "Freedom" - security entirely up to developer
+    public function onGet(int $id): static  // Type-enforced, no injection
+    {
+        $this->body = $this->query->find($id);
+        return $this;
+    }
+}
+```
 
-#### BEAR.Sunday
+### Escaping
 
-- **Strengths:** Constraints enforce security, uniform structure, explicit everything
-- **Weakness:** Smaller ecosystem, learning curve
-- **Philosophy:** "Constraints as features" - unsafe patterns are architecturally impossible
+```php
+// WordPress: Must remember to escape, easy to forget
+echo '<div>' . $user_input . '</div>';           // XSS
+echo '<div>' . esc_html($user_input) . '</div>'; // Safe, but manual
+
+// BEAR.Sunday + Qiq: Must explicitly choose
+{{h $userInput }}  // Cannot output without choosing escape method
+```
+
+### Security Implications
+
+| Aspect | WordPress | BEAR.Sunday |
+|--------|-----------|-------------|
+| SQL Injection | Very common | Structurally prevented |
+| XSS | Common (manual escape) | Renderer boundary + explicit escape |
+| Dependency audit | Difficult (globals) | Easy (constructor) |
+| AI analysis | Nearly impossible | Straightforward |
+
+**WordPress philosophy:** "Trust the developer"
+**BEAR.Sunday philosophy:** "Constrain the developer"
+
+---
+
+## vs Laravel
+
+Laravel provides excellent security tools, but allows bypassing them.
+
+### Hidden Dependencies
+
+```php
+// Laravel: Facades hide what's happening
+class UserController extends Controller
+{
+    public function store(Request $request)
+    {
+        $user = User::create($request->all());  // Mass assignment risk
+        Cache::put('user', $user);              // Where does Cache come from?
+        Log::info('User created');              // Where does Log come from?
+        return view('user.show', compact('user'));
+    }
+}
+
+// BEAR.Sunday: Everything is visible
+class User extends ResourceObject
+{
+    public function __construct(
+        private UserRepository $repo,
+        private CacheInterface $cache,  // Visible
+        private LoggerInterface $log    // Visible
+    ) {}
+
+    public function onPost(
+        #[Valid] UserInput $input  // Validated, typed
+    ): static {
+        $this->body = $this->repo->create($input);
+        return $this;
+    }
+}
+```
+
+### Escaping Bypass
+
+```php
+// Laravel Blade: Easy to bypass auto-escaping
+{{ $safe }}           // Escaped
+{!! $dangerous !!}    // Raw output - XSS if misused
+
+// Qiq: No "raw" shortcut, must be intentional
+{{h $safe }}          // HTML escaped
+{{= $raw }}           // Raw, but "=" makes intent clear
+```
+
+### Mass Assignment
+
+```php
+// Laravel: $fillable/$guarded can be forgotten
+class User extends Model
+{
+    // If $fillable is missing, all fields are assignable
+    // $request->all() can include 'is_admin' => true
+}
+
+// BEAR.Sunday: No ORM magic, explicit mapping required
+public function onPost(UserInput $input): static
+{
+    // Only properties defined in UserInput are accepted
+}
+```
+
+### Security Implications
+
+| Aspect | Laravel | BEAR.Sunday |
+|--------|---------|-------------|
+| Dependency visibility | Hidden (Facades) | Explicit (DI) |
+| Mass assignment | Possible if misconfigured | Impossible (no magic) |
+| Escape bypass | Easy (`{!! !!}`) | Intentional only |
+| Testing | Requires mocking facades | Natural (DI) |
+
+**Laravel philosophy:** "Provide safe defaults, allow escape hatches"
+**BEAR.Sunday philosophy:** "No escape hatches by design"
+
+---
+
+## vs Symfony
+
+Symfony is the closest to BEAR.Sunday in explicitness, but differs in representation handling.
+
+### Representation Boundary
+
+```php
+// Symfony: Controller returns Response (HTML/JSON)
+class UserController extends AbstractController
+{
+    #[Route('/user/{id}')]
+    public function show(int $id): Response
+    {
+        $user = $this->userRepository->find($id);
+
+        // Option 1: Twig (safe, but controller chooses representation)
+        return $this->render('user/show.html.twig', ['user' => $user]);
+
+        // Option 2: Direct Response (XSS possible)
+        return new Response("<h1>{$user->getName()}</h1>");
+    }
+}
+
+// BEAR.Sunday: Resource returns value only
+class User extends ResourceObject
+{
+    public function onGet(int $id): static
+    {
+        $this->body = $this->repo->find($id);
+        return $this;
+        // Representation is NEVER chosen here
+        // Renderer handles HTML/JSON/XML based on content negotiation
+    }
+}
+```
+
+### Content Negotiation
+
+```php
+// Symfony: Must implement manually or use FOSRestBundle
+#[Route('/api/user/{id}')]
+public function show(int $id): Response
+{
+    $user = $this->repo->find($id);
+    if ($request->getPreferredFormat() === 'json') {
+        return $this->json($user);
+    }
+    return $this->render('user.html.twig', ['user' => $user]);
+}
+
+// BEAR.Sunday: Built-in, automatic
+// Same resource serves HTML, JSON, XML based on Accept header
+// Security is consistent across all representations
+```
+
+### Security Implications
+
+| Aspect | Symfony | BEAR.Sunday |
+|--------|---------|-------------|
+| Value/Representation | Convention (can mix) | Enforced (cannot mix) |
+| Content negotiation | Manual/Bundle | Built-in |
+| Escape bypass | Possible (raw Response) | Impossible |
+| Security consistency | Per-representation | Architectural |
+
+**Symfony philosophy:** "Explicit configuration, flexible output"
+**BEAR.Sunday philosophy:** "Explicit configuration, constrained output"
+
+---
+
+## Summary: The Constraint Spectrum
+
+```
+← More Freedom                              More Constraints →
+
+WordPress    Slim    Laravel    Symfony    BEAR.Sunday
+    │         │         │          │            │
+    ▼         ▼         ▼          ▼            ▼
+ Globals   No rules  Facades   Explicit    Enforced
+ No types  Freedom   Magic     DI          Boundaries
+ Manual    Manual    Auto      Auto        Explicit
+ escape    escape    escape    escape      escape
+```
+
+The further right, the harder it is to write insecure code.
+
+BEAR.Sunday trades flexibility for security guarantees.
 
 ---
 
