@@ -228,6 +228,7 @@ vendor/bin/psalm --taint-analysis
 
 ## Documentation
 
+- [Security through Architecture](docs/security-architecture.md) - Why BEAR.Sunday is secure by design
 - [Detection Matrix](docs/detection-matrix.md) - Full detection capability matrix
 - [Enterprise Tools Comparison](docs/comparison-enterprise.md) - vs Snyk, SonarQube, Checkmarx
 - [VADDY Comparison](docs/comparison-vaddy.md) - vs VADDY SaaS
