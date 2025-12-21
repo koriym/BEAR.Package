@@ -8,6 +8,16 @@ Traditional frameworks offer developers safe methods and hope they will be used 
 
 ## Decisive Architectural Differences
 
+### Thorough Static Analysis
+
+BEAR.Sunday and its underlying libraries are analyzed with PHPStan and Psalm at maximum strictness levels. This means:
+
+- All arrays have explicit shapes, not just `array` but `array{id: int, name: string}`
+- The `mixed` type is minimized throughout the codebase
+- Every function parameter and return type is explicitly declared
+
+This level of type precision enables Psalm's taint analysis to work with maximum effectiveness. When types are vague, taint tracking becomes unreliable. When types are precise, the static analyzer can prove that tainted data never reaches dangerous functions.
+
 ### Input: Type Enforcement vs Request Object
 
 The difference begins at input handling. In most frameworks, input arrives through a request object:
@@ -91,6 +101,8 @@ class User extends ResourceObject
 ```
 
 There are no facades, no service locators, no static calls to global containers. When you read a class, you see everything it uses. Security audits can trace dependencies without understanding framework internals.
+
+The framework itself is built entirely with DI. Every framework component can be replaced by binding a different implementation. If a security vulnerability is discovered in a framework component, it can be swapped out without modifying application code.
 
 This explicitness enables complete dependency visualization with [Ray.ObjectGrapher](https://github.com/ray-di/Ray.ObjectGrapher):
 
