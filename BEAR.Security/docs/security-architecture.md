@@ -2,7 +2,22 @@
 
 BEAR.Sunday does not merely provide security tools. It enforces security through architectural constraints.
 
-Traditional frameworks offer developers safe methods and hope they will be used correctly. BEAR.Sunday takes a different approach: it makes unsafe patterns structurally impossible to write.
+## Writability vs Readability
+
+Most frameworks optimize for **writability**—making code easy to write. Facades, magic methods, and implicit behaviors reduce keystrokes and speed up development. The cost is paid later, when someone must understand, audit, or debug that code.
+
+BEAR.Sunday optimizes for **readability**—making code easy to understand. Constraints and explicit patterns require more deliberate writing, but the result is code where what you read is what you get.
+
+Security is fundamentally a **reading** activity:
+
+- Understanding what code does
+- Tracing data flow from input to output
+- Auditing dependencies and access patterns
+- Verifying that protections are in place
+
+An architecture optimized for reading is an architecture optimized for security. When code is explicit, auditors can verify it. When dependencies are visible, they can be traced. When patterns are uniform, tools—both human and AI—can analyze them reliably.
+
+BEAR.Sunday's constraints are not limitations. They are the foundation of security.
 
 ---
 
