@@ -13,7 +13,7 @@ Security scanner for BEAR.Sunday applications with OWASP Top 10 compliance.
 - **Multiple Output Formats** - Console, JSON, SARIF, HTML
 - **GitHub Security Integration** - SARIF output for Security tab
 
-See also: [Detection Matrix](docs/detection-matrix.md) | [Comparison with VADDY](docs/comparison-vaddy.md)
+See also: [Detection Matrix](docs/detection-matrix.md) | [Enterprise Comparison](docs/comparison-enterprise.md)
 
 ## Installation
 
@@ -228,9 +228,10 @@ vendor/bin/psalm --taint-analysis
 
 ## Documentation
 
-- [Detection Matrix](docs/detection-matrix.md) - Detection coverage
-- [GitHub Actions Integration](docs/github-actions.md)
-- [Comparison with VADDY](docs/comparison-vaddy.md)
+- [Detection Matrix](docs/detection-matrix.md) - Full detection capability matrix
+- [Enterprise Tools Comparison](docs/comparison-enterprise.md) - vs Snyk, SonarQube, Checkmarx
+- [VADDY Comparison](docs/comparison-vaddy.md) - vs VADDY SaaS
+- [GitHub Actions](docs/github-actions.md) - CI/CD integration guide
 - [LLM Context](docs/llms.txt) | [Full](docs/llms-full.txt)
 
 ## License
