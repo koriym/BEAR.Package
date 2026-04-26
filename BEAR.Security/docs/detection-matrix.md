@@ -78,6 +78,7 @@ Vulnerabilities requiring context understanding:
 | Path Traversal | `../../../etc/passwd` | File content check |
 | CSRF | POST without token | Success check |
 | Open Redirect | `//evil.com` | Redirect target |
+| Security Headers | N/A | Header analysis (CSP, HSTS, X-Frame-Options) |
 
 ---
 
